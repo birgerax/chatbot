@@ -55,7 +55,6 @@ else:
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-!pip install -q pyscbwrapper
 from pyscbwrapper import SCB
 scb = SCB('sv')
 scb = SCB('sv', 'BO', 'BO0101', 'BO0101C', 'LagenhetNyKv16')
