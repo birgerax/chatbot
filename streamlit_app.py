@@ -55,26 +55,66 @@ else:
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-from pyscbwrapper import SCB
-scb = SCB('sv')
-scb = SCB('sv', 'BO', 'BO0101', 'BO0101C', 'LagenhetNyKv16')
-scb.get_variables()
-scb.set_query(region=["Riket"],
-              tabellinnehåll=["Påbörjade lägenheter i nybyggda hus"])
-scb.get_query()
-scb.get_data()
-scb_data = scb.get_data()
+###### Påbörjade bostäder: uppdelat per upplåtelseform
+
+import requests
+import json
+
+session = requests.Session()
+
+query = {
+  "query": [
+    {
+      "code": "Region",
+      "selection": {
+        "filter": "vs:RegionRiket99",
+        "values": [
+          "00"
+        ]
+      }
+    },
+    {
+      "code": "Hustyp",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "FLERBO",
+          "SMÅHUS"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "BO0101A4"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json"
+  }
+}
+
+url = "https://api.scb.se/OV0104/v1/doris/sv/ssd/START/BO/BO0101/BO0101C/LagenhetNyKv16"
+
+response = session.post(url, json=query)
+response_json = json.loads(response.content.decode('utf-8-sig'))
+
 import plotly.graph_objs as go
 import plotly.offline as pyo
 import pandas as pd
 import math
 
-keys_kvartal = [entry['key'][1] for entry in scb_data['data']]
-values_kvartal = [float(entry['values'][0]) for entry in scb_data['data']]
+keys_pkv = [entry['key'][2] for entry in response_json['data']]
+values_pfle = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][1] == 'FLERBO']
+values_psma = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][1] == 'SMÅHUS']
 
 yearly_totals = {}
-for entry in scb_data['data']:
-  year_quarter = entry['key'][1]
+for entry in response_json['data']:
+  year_quarter = entry['key'][2]
   value = float(entry['values'][0])
   year = int(year_quarter[:4])
 
@@ -83,26 +123,30 @@ for entry in scb_data['data']:
   else:
     yearly_totals[year] = value
 
-years_p_kvartal = list(yearly_totals.keys())
-totals_p_kvartal = list(yearly_totals.values())
-
 # Determine the minimum length among all value lists
-min_length = min(len(values) for values in [totals_p_kvartal])
+min_length = min(len(values) for values in [values_psma, values_pfle])
 
 # Trim keys_barometer to match the minimum length
-keys_kv_trimmed = years_p_kvartal[:min_length]
+keys_pkv_trimmed = keys_pkv[:min_length]
 
 # Create a DataFrame to organize the data with time as the index
-df = pd.DataFrame({'Time': keys_kv_trimmed})
+df = pd.DataFrame({'Time': keys_pkv_trimmed})
 
 # Add columns for each line plot, ensuring lengths match
-df['Total'] = totals_p_kvartal[:min_length]
+df['Flerbostadshus'] = values_pfle[:min_length]
+df['Småhus'] = values_psma[:min_length]
+
+# Slice the DataFrame to select the last 60 rows
+df = df.iloc[-61:]
 
 # Determine the number of x-ticks to display
-desired_ticks = min(len(df), 12)
+desired_ticks = 12
 
-# Select x-ticks at regular intervals
-tick_positions = list(range(0, len(df), max(1, len(df) // (desired_ticks - 1))))
+# Calculate the step size for selecting x-ticks
+step_size = math.ceil(len(df) / (desired_ticks - 1))  # Adjusting for the inclusion of the last x-tick
+
+# Select x-ticks at regular intervals with the last x-tick included
+tick_positions = list(range(0, len(df), step_size))
 tick_positions.append(len(df) - 1)  # Include the last x-tick position
 
 # Extract the corresponding timestamps for the selected x-ticks
@@ -110,7 +154,7 @@ tick_labels = df['Time'].iloc[tick_positions]
 
 # Create traces using DataFrame columns
 colors = ['rgb(8,48,107)', 'rgb(204, 0, 0)']  # Colors from the previous code
-data_p_kvartal = []
+data_pkv = []
 for i, column in enumerate(df.columns[1:]):
     trace = go.Scatter(
         x=df['Time'],
@@ -128,7 +172,7 @@ for i, column in enumerate(df.columns[1:]):
         selected=dict(marker=dict(color='red')),
         unselected=dict(marker=dict(opacity=0.1))
     )
-    data_p_kvartal.append(trace)
+    data_pkv.append(trace)
 
 # Add subtopic for the time of the last datapoint
 last_datapoint_time = df['Time'].iloc[-1]
@@ -144,12 +188,11 @@ last_datapoint_annotation = dict(
     showarrow=False,
 )
 
-# Add annotation for the data source below the frame
 data_source_annotation = dict(
     xref='paper',
     yref='paper',
     x=0.01,
-    y=-0.1,
+    y=-0.2,
     xanchor='center',
     yanchor='top',
     text='Källa: <a href="https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__BO__BO0101__BO0101C/LagenhetNyKv16/">SCB</a>',
@@ -157,12 +200,13 @@ data_source_annotation = dict(
     showarrow=False,
 )
 
-layout_p_kvartal = go.Layout(
-    title='Påbörjade bostäder per år (ej uppräknat)',
+# Layout
+layout_pkv = go.Layout(
+    title='Påbörjade bostäder (kvartal, ej uppräknat)',
     titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
     xaxis=dict(
         # Remove tickvals and ticktext properties
-        tickangle=0,  # Rotate x-axis tick labels 180 degrees
+        tickangle=270,  # Rotate x-axis tick labels 180 degrees
         showline=True,  # Show x-axis line
         linewidth=1,  # Set x-axis line width
         linecolor='black',  # Set x-axis line color
@@ -203,9 +247,13 @@ layout_p_kvartal = go.Layout(
     )
 )
 
-# Update trace properties
-for trace in data_p_kvartal:
-    trace['line']['dash'] = 'solid'  # Set line style to solid for all traces
+
+layout_pkv['title']['y'] = 0.89
+
+pkv_tot = go.Figure(data=data_pkv, layout=layout_pkv, layout_width=800)
+pkv_tot.show()
+
+
 
 
 layout_p_kvartal['title']['y'] = 0.89
