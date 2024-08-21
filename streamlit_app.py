@@ -59,6 +59,7 @@ else:
 
 import requests
 import json
+import pandas as pd
 
 session = requests.Session()
 
