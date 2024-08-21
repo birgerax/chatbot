@@ -103,11 +103,6 @@ url = "https://api.scb.se/OV0104/v1/doris/sv/ssd/START/BO/BO0101/BO0101C/Lagenhe
 response = session.post(url, json=query)
 response_json = json.loads(response.content.decode('utf-8-sig'))
 
-import plotly.graph_objs as go
-import plotly.offline as pyo
-import pandas as pd
-import math
-
 keys_pkv = [entry['key'][2] for entry in response_json['data']]
 values_pfle = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][1] == 'FLERBO']
 values_psma = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][1] == 'SMÅHUS']
