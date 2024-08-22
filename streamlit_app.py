@@ -57,7 +57,6 @@ else:
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 """
-%%writefile app.py
 
 import streamlit as st
 
