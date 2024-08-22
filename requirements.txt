@@ -1,3 +1,4 @@
 streamlit
 openai
 bs4
+prettytable
