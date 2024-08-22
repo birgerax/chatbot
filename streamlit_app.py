@@ -1,4 +1,3 @@
-"""
 import streamlit as st
 from openai import OpenAI
 
@@ -56,8 +55,8 @@ else:
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-"""
 
+"""
 import streamlit as st
 pip install beautifulsoup4
 
@@ -1446,3 +1445,4 @@ with tab5:
   #pyo.iplot(konjunkturbarometern, filename='line-mode')
 
   st.plotly_chart(konjunkturbarometern)
+"""
