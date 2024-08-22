@@ -59,7 +59,7 @@ else:
 """
 
 import streamlit as st
-!pip install bs4
+pip install bs4
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Statistikuppdateringar", "BP", "Konkurser", "Byggkostnadsindex", "KI", "Investeringar", "Ny- och ombyggnad", "Internationella jämförelser"])
 
