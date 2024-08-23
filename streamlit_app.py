@@ -1170,7 +1170,7 @@ with tab4:
 
   layout_bki_fler['title']['y'] = 0.89
   bki_fler = go.Figure(data=data_bki_fler, layout=layout_bki_fler, layout_width=1000)
-  pyo.iplot(bki_fler, filename='line-mode')
+  #pyo.iplot(bki_fler, filename='line-mode')
 
   bki_tot = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=1000)
   st.plotly_chart(bki_tot)
