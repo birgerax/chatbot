@@ -4393,3 +4393,60 @@ with tab7:
   layout_fardig['title']['y'] = 0.89
   fardig_tot = go.Figure(data=data_fardig, layout=layout_fardig)
   st.plotly_chart(fardig_tot)
+    
+  import requests
+  import json
+  import pandas as pd
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "månad",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "0",
+            "1",
+            "2"
+          ],
+          "valueTexts": [
+          "2024M06",
+          "2024M05",
+          "2024M04"
+          ]
+        }
+      },
+      {
+        "code": "bransch",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      },
+      {
+        "code": "variabel",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "0"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://statistik.tillvaxtanalys.se:443/PxWeb/api/v1/sv/Tillväxtanalys statistikdatabas/Konkurser och offentliga ackord/konk_manad_bransch_2009.px"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+  st.write(response_json)
