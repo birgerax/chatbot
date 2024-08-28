@@ -1,6 +1,11 @@
-import streamlit as st
+%%writefile app.py
 
-st.title("Statistik!!! 📊")
+import streamlit as st
+from io import BytesIO
+from pyxlsb import open_workbook as open_xlsb
+
+st.set_page_config(layout='wide')
+st.title("Statistik 📊")
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Datum", "BP", "Konkurser", "Byggkostnadsindex", "KI", "Investeringar", "Ny- och ombyggnad", "Internationella jämförelser"])
 
 with tab1:
@@ -84,6 +89,23 @@ with tab1:
   sorterade_datum = sorted(alla_datum, key=lambda x: x[0])
   for date, category, variable in sorterade_datum:
     print(category + ":\n" + variable + "\n")
+
+  @st.cache_data
+  def convert_df(df):
+      # IMPORTANT: Cache the conversion to prevent computation on every rerun
+      return df.to_csv().encode("utf-8")
+
+  def to_excel(df):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+    format1 = workbook.add_format({'num_format': '0.00'})
+    worksheet.set_column('A:A', None, format1)
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
 
   # Tabell: statistikuppdateringar efter närmast datum
   from datetime import datetime
@@ -1018,7 +1040,7 @@ with tab4:
 
   layout_bki_sma['title']['y'] = 0.89
 
-  bki_sma = go.Figure(data=data_bki_sma, layout=layout_bki_sma, layout_width=1000)
+  bki_sma = go.Figure(data=data_bki_sma, layout=layout_bki_sma, layout_width=700)
   #pyo.iplot(bki_sma, filename='line-mode')
 
   import plotly.graph_objs as go
@@ -1169,13 +1191,87 @@ with tab4:
   )
 
   layout_bki_fler['title']['y'] = 0.89
-  bki_fler = go.Figure(data=data_bki_fler, layout=layout_bki_fler, layout_width=1000)
+  bki_fler = go.Figure(data=data_bki_fler, layout=layout_bki_fler, layout_width=700)
   #pyo.iplot(bki_fler, filename='line-mode')
 
-  bki_tot = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=1000)
+  bki_tot = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=700)
   st.plotly_chart(bki_tot)
+
+  new_annotation = dict(
+      xref='paper',
+      yref='paper',
+      x=0.15,
+      y=1,
+      xanchor='center',
+      yanchor='bottom',
+      text=f'Senaste utfall: {last_datapoint_time}',
+      font=dict(size=14, color='black'),  # Set font size and color
+      showarrow=False,
+  )
+
+  layout_bki_tot['annotations'] = [new_annotation, data_source_annotation]
+  layout_bki_tot['title']['x'] = 0.1
+  bki_tot = go.Figure(data=data_bki_tot, layout=layout_bki_tot)
+
+  @st.cache_data
+  def save_figure_as_image(fig, format='png'):
+      # Save the figure to a BytesIO object
+      img_bytes = BytesIO()
+      fig.write_image(img_bytes, format=format, scale=2)  # Increase scale for higher resolution
+      img_bytes.seek(0)
+      return img_bytes
+
+  # Save the figure as a high-resolution image (PNG format by default)
+  image_data = save_figure_as_image(bki_tot, format='png')
+
+  # Add a download button for the figure image
+  st.download_button(
+      label="Hämta figur",
+      data=image_data,
+      file_name="figure.png",
+      mime="image/png",
+      key="1"
+  )                              
+
   st.plotly_chart(bki_sma)
+  layout_bki_sma['annotations'] = [new_annotation, data_source_annotation]
+  layout_bki_sma['title']['x'] = 0.1
+  bki_sma = go.Figure(data=data_bki_sma, layout=layout_bki_sma)
+
+  # Save the figure as a high-resolution image (PNG format by default)
+  image_data = save_figure_as_image(bki_sma, format='png')
+
+  # Add a download button for the figure image
+  st.download_button(
+      label="Hämta figur",
+      data=image_data,
+      file_name="figure.png",
+      mime="image/png",
+      key="2"
+  )        
+
   st.plotly_chart(bki_fler)
+  layout_bki_fler['annotations'] = [new_annotation, data_source_annotation]
+  layout_bki_fler['title']['x'] = 0.1
+  bki_fler = go.Figure(data=data_bki_fler, layout=layout_bki_fler)
+
+    # Save the figure as a high-resolution image (PNG format by default)
+  image_data = save_figure_as_image(bki_fler, format='png')
+
+  # Add a download button for the figure image
+  st.download_button(
+      label="Hämta figur",
+      data=image_data,
+      file_name="figure.png",
+      mime="image/png",
+      key="3"
+  )   
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="10")
 
 with tab5:
   ##### Konfidensindikator, kvartal
@@ -1786,9 +1882,15 @@ with tab5:
   )
 
   # Create the figure
-  barometerindikatorn = go.Figure(data=data_barometerindikatorn, layout=layout_barometerindikatorn, layout_width=1000)
+  barometerindikatorn = go.Figure(data=data_barometerindikatorn, layout=layout_barometerindikatorn, layout_width=700)
   #pyo.iplot(barometerindikatorn, filename='line-mode')
   st.plotly_chart(barometerindikatorn)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="9")
 
   barometer_bbyg = pd.DataFrame({'År': keys_barometer[:len(values_bbyg)], 'Byggindustri (SNI 41-43)': values_bbyg})
   barometer_bboa = pd.DataFrame({'År2': keys_barometer[:len(values_bbyg)], 'Bygg & anläggning (SNI 41-42)': values_bboa})
@@ -2032,9 +2134,15 @@ with tab5:
 
   layout_anbudspriser['title']['y'] = 0.89
 
-  anbudspriser = go.Figure(data=data_anbudspriser, layout=layout_anbudspriser, layout_width=1000)
+  anbudspriser = go.Figure(data=data_anbudspriser, layout=layout_anbudspriser, layout_width=700)
   #pyo.iplot(anbudspriser, filename='line-mode')
   st.plotly_chart(anbudspriser)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="8")
 
   anbudspriser_bbyg = pd.DataFrame({'År': keys_anbud[:len(values_bbyg)], 'Byggindustri (SNI 41-43)': values_bbyg})
   anbudspriser_bboa = pd.DataFrame({'År2': keys_anbud[:len(values_bbyg)], 'Bygg & anläggning (SNI 41-42)': values_bboa})
@@ -2251,9 +2359,15 @@ with tab5:
 
   layout_orderstock['title']['y'] = 0.89
 
-  orderstock = go.Figure(data=data_orderstock, layout=layout_orderstock, layout_width=1000)
+  orderstock = go.Figure(data=data_orderstock, layout=layout_orderstock, layout_width=700)
   #pyo.iplot(orderstock, filename='line-mode')
   st.plotly_chart(orderstock)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="7")
 
   orderstock_bbyg = pd.DataFrame({'År': keys_orderstock[:len(values_bbyg)], 'Byggindustri (SNI 41-43)': values_bbyg})
   orderstock_bboa = pd.DataFrame({'År2': keys_orderstock[:len(values_bbyg)], 'Bygg & anläggning (SNI 41-42)': values_bboa})
@@ -2470,9 +2584,15 @@ with tab5:
 
   layout_anstallningsplaner['title']['y'] = 0.89
 
-  planer = go.Figure(data=data_anstallningsplaner, layout=layout_anstallningsplaner, layout_width=1000)
+  planer = go.Figure(data=data_anstallningsplaner, layout=layout_anstallningsplaner, layout_width=700)
  #pyo.iplot(planer, filename='line-mode')
   st.plotly_chart(planer)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="6")
 
   planer_bbyg = pd.DataFrame({'År': keys_planer[:len(values_bbyg)], 'Byggindustri (SNI 41-43)': values_bbyg})
   planer_bboa = pd.DataFrame({'År2': keys_planer[:len(values_bbyg)], 'Bygg & anläggning (SNI 41-42)': values_bboa})
@@ -2680,9 +2800,15 @@ with tab5:
 
   layout_hinder['title']['y'] = 0.89
 
-  hinder = go.Figure(data=data_hinder, layout=layout_hinder, layout_width=1000)
+  hinder = go.Figure(data=data_hinder, layout=layout_hinder, layout_width=700)
  # pyo.iplot(hinder, filename='line-mode')
   st.plotly_chart(hinder)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="5")
 
   hinder_efterfragan = pd.DataFrame({'År': keys_hinder[:len(values_efterfragan)], 'Efterfrågan': values_efterfragan})
   hinder_material = pd.DataFrame({'År2': keys_hinder[:len(values_efterfragan)], 'Material och/eller utrustning': values_material})
@@ -2845,9 +2971,15 @@ with tab5:
 
   layout_hinder_hus['title']['y'] = 0.89
 
-  hinder_hus = go.Figure(data=data_hinder_hus, layout=layout_hinder_hus, layout_width=1000)
+  hinder_hus = go.Figure(data=data_hinder_hus, layout=layout_hinder_hus, layout_width=700)
   #pyo.iplot(hinder_hus, filename='line-mode')
   st.plotly_chart(hinder_hus)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="4")
 
   hinder_hus_efterfragan = pd.DataFrame({'År': keys_hinder[:len(values_efterfragan)], 'Efterfrågan': values_efterfragan})
   hinder_hus_material = pd.DataFrame({'År2': keys_hinder[:len(values_efterfragan)], 'Material och/eller utrustning': values_material})
@@ -3010,9 +3142,15 @@ with tab5:
 
   layout_hinder_anlaggning['title']['y'] = 0.89
 
-  hinder_anlaggning = go.Figure(data=data_hinder_anlaggning, layout=layout_hinder_anlaggning, layout_width=1100)
+  hinder_anlaggning = go.Figure(data=data_hinder_anlaggning, layout=layout_hinder_anlaggning, layout_width=700)
   #pyo.iplot(hinder_anlaggning, filename='line-mode')
   st.plotly_chart(hinder_anlaggning, width=1100, height=900)
+
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="15")
 
 with tab6:
   ### Bostadsinvesteringar (work in progress..)
@@ -3178,7 +3316,7 @@ with tab6:
   response_json = json.loads(response.content.decode('utf-8-sig'))
 
   bostadsinvesteringar = response_json
-  
+
   import plotly.graph_objs as go
   import plotly.offline as pyo
   import pandas as pd
@@ -3732,7 +3870,7 @@ with tab6:
   response_json = json.loads(response.content.decode('utf-8-sig'))
 
   bostadsinvesteringar_fast = response_json
-  
+
   keys_inv_fast = [entry['key'][1] for entry in bostadsinvesteringar_fast['data']]
   values_inv_fast = [float(entry['values'][0]) for entry in bostadsinvesteringar_fast['data']]
   df_inv_fast = pd.DataFrame({'Time': keys_inv_fast, 'Total': values_inv_fast})
@@ -4192,8 +4330,14 @@ with tab6:
   layout_combined["title"] = "Fasta bruttoinvesteringar"
   layout_combined['title']['y'] = 0.89
 
-  combined = go.Figure(data=data_combined, layout=layout_combined, layout_width=900)
+  combined = go.Figure(data=data_combined, layout=layout_combined, layout_width=700)
   st.plotly_chart(combined)
+
+  df_xlsx = to_excel(combined_df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="16")
 
 with tab7:
   import requests
@@ -4391,9 +4535,60 @@ with tab7:
   )
 
   layout_fardig['title']['y'] = 0.89
-  fardig_tot = go.Figure(data=data_fardig, layout=layout_fardig)
+  fardig_tot = go.Figure(data=data_fardig, layout=layout_fardig, layout_width=700)
+
+  #csv = convert_df(df)
+
   st.plotly_chart(fardig_tot)
-    
+  #st.download_button(
+  #    label="Hämta data",
+  #    data=csv,
+  #    file_name="csv.csv",
+  #    mime="text/csv",
+  #    key="2"
+  #)
+  df_xlsx = to_excel(df)
+  st.download_button(label='📥 Hämta data',
+                                data=df_xlsx,
+                                file_name= 'df_test.xlsx',
+                                key="17")
+  
+  new_annotation = dict(
+      xref='paper',
+      yref='paper',
+      x=0.15,
+      y=1,
+      xanchor='center',
+      yanchor='bottom',
+      text=f'Senaste utfall: {last_datapoint_time}',
+      font=dict(size=14, color='black'),  # Set font size and color
+      showarrow=False,
+  )
+
+  layout_fardig['annotations'] = [new_annotation, data_source_annotation]
+  layout_fardig['title']['x'] = 0.1
+  fardig_tot = go.Figure(data=data_fardig, layout=layout_fardig)
+
+  @st.cache_data
+  def save_figure_as_image(fig, format='png'):
+      # Save the figure to a BytesIO object
+      img_bytes = BytesIO()
+      fig.write_image(img_bytes, format=format, scale=2)  # Increase scale for higher resolution
+      img_bytes.seek(0)
+      return img_bytes
+
+  # Save the figure as a high-resolution image (PNG format by default)
+  image_data = save_figure_as_image(fardig_tot, format='png')
+
+  # Add a download button for the figure image
+  st.download_button(
+      label="Hämta figur",
+      data=image_data,
+      file_name="figure.png",
+      mime="image/png",
+      key="18"
+  )
+
   import requests
   import json
   import pandas as pd
