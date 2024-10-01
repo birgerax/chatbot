@@ -6688,21 +6688,3 @@ with tab8:
   #fig.show()
   st.plotly_chart(fig)
 
-
-  chat_completion = groq_client.chat.completions.create(
-      messages=[
-          {
-              "role": "user",
-              "content": f"Based on the yearly data in the dataframe {data_long}, describe the data (look through {fig} to understand what the data is about; it shows the housing overcrowding rate for people in risk of poverty) with trends. Focus on Sweden and how its data relates to the other countries.",
-          }
-      ],
-      model=llama_70B,
-  )
-
-  #st.write(chat_completion.choices[0].message.content)
-  st.button("Reset", type="primary")
-  if st.button("Analysera med AI"):
-      st.write(chat_completion.choices[0].message.content)
-  else:
-      st.write(" ")
-
