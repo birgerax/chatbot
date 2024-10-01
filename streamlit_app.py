@@ -3,10 +3,6 @@ import streamlit as st
 from io import BytesIO
 from pyxlsb import open_workbook as open_xlsb
 from groq import Groq
-groq_client = Groq(
-    api_key="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",
-)
-llama_70B = "llama-3.1-70b-versatile"
 
 st.set_page_config(layout='wide')
 st.title("Statistik 📊")
