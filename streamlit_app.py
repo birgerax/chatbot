@@ -4520,13 +4520,6 @@ with tab7:
     keys_kv_trimmed = keys_kv[:min_length]
     df = pd.DataFrame({'Time': keys_kv_trimmed, 'Flerbostadshus': values_fle[:min_length], 'Småhus': values_sma[:min_length]})
 
-    # Update specific y-values for 'Småhus' and 'Flerbostadshus' using df.loc
-    df.loc[df['Time'] == '2024K1', 'Småhus'] = 2016
-    df.loc[df['Time'] == '2024K2', 'Småhus'] = 1499
-
-    df.loc[df['Time'] == '2024K1', 'Flerbostadshus'] = 12116
-    df.loc[df['Time'] == '2024K2', 'Flerbostadshus'] = 8911
-
     # Rolling annual totals
     df['Småhus_rolling'] = df['Småhus'].rolling(window=4).sum()
     df['Flerbostadshus_rolling'] = df['Flerbostadshus'].rolling(window=4).sum()
@@ -5178,17 +5171,6 @@ with tab7:
     min_length = min(len(values) for values in [values_psma, values_pfle])
     keys_pkv_trimmed = keys_pkv[:min_length]
     df = pd.DataFrame({'Time': keys_pkv_trimmed, 'Flerbostadshus': values_pfle[:min_length], 'Småhus': values_psma[:min_length]})
-
-    # Update specific y-values for 'Småhus' and 'Flerbostadshus' using df.loc
-    df.loc[df['Time'] == '2023K4', 'Småhus'] = 1350
-    df.loc[df['Time'] == '2024K1', 'Småhus'] = 1300
-    df.loc[df['Time'] == '2024K2', 'Småhus'] = 1250
-    df.loc[df['Time'] == '2024K3', 'Småhus'] = 1500
-
-    df.loc[df['Time'] == '2023K4', 'Flerbostadshus'] = 6400
-    df.loc[df['Time'] == '2024K1', 'Flerbostadshus'] = 7450
-    df.loc[df['Time'] == '2024K2', 'Flerbostadshus'] = 6850
-    df.loc[df['Time'] == '2024K3', 'Flerbostadshus'] = 3200
 
     # Rolling annual totals
     df['Småhus_rolling'] = df['Småhus'].rolling(window=4).sum()
