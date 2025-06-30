@@ -4,16 +4,15 @@ from io import BytesIO
 from pyxlsb import open_workbook as open_xlsb
 from groq import Groq
 
-st.set_page_config(layout='wide')
 st.title("Statistik 📊")
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Datum", "Bostadsbestånd", "Byggkostnadsindex", "KI", "Investeringar", "Ny- och ombyggnad", "Eurostat", "BP"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Datum", "Bostadsbestånd", "Hushållens boende", "BKI", "KI", "Investeringar", "Ny- och ombyggnad", "Eurostat", "BP"])
 
 with tab1:
     #### Få datum för nästa SCB-publicering: byggande
   import requests
   from bs4 import BeautifulSoup
 
-  url = "https://www.scb.se/hitta-statistik/statistik-efter-amne/boende-byggande-och-bebyggelse/bostadsbyggande-och-ombyggnad/bygglov-nybyggnad-och-ombyggnad/"
+  url = "https://www.scb.se/hitta-statistik/statistik-efter-amne/boende-bebyggelse-och-mark/byggande-och-ombyggnad/bygglov-nybyggnad-och-ombyggnad/"
   response = requests.get(url)
   soup = BeautifulSoup(response.text, "html.parser")
   next_publication = soup.find("div", {"class": "row topIntro"}).find("a", {"class": "link-large link-icon-calendar link-icon"}).find("span").text
@@ -31,7 +30,7 @@ with tab1:
   import requests
   from bs4 import BeautifulSoup
 
-  url_bki = "https://www.scb.se/hitta-statistik/statistik-efter-amne/priser-och-konsumtion/byggnadsprisindex-samt-faktorprisindex-for-byggnader/byggkostnadsindex-bki/"
+  url_bki = "https://www.scb.se/hitta-statistik/statistik-efter-amne/priser-och-ekonomiska-tendenser/priser/byggkostnadsindex-bki/"
   response_bki = requests.get(url_bki)
   soup_bki = BeautifulSoup(response_bki.text, "html.parser")
   datum_bki = soup_bki.find("div", {"class": "row topIntro"}).find("a", {"class": "link-large link-icon-calendar link-icon"}).find("span").text
@@ -40,7 +39,7 @@ with tab1:
   import requests
   from bs4 import BeautifulSoup
 
-  url_k = "https://www.scb.se/hitta-statistik/statistik-efter-amne/naringsverksamhet/konkurser-och-offentliga-ackord/konkurser-och-offentliga-ackord/"
+  url_k = "https://www.scb.se/hitta-statistik/statistik-efter-amne/naringsverksamhet-och-utrikeshandel/foretagens-demografi/konkurser-och-offentliga-ackord/"
   response_k = requests.get(url_k)
   soup_k = BeautifulSoup(response_k.text, "html.parser")
   datum_k = soup_k.find("div", {"class": "row topIntro"}).find("a", {"class": "link-large link-icon-calendar link-icon"}).find("span").text
@@ -61,7 +60,7 @@ with tab1:
   url_tj = "https://www.scb.se/hitta-statistik/statistik-efter-amne/priser-och-konsumtion/prisindex-i-producent-och-importled/prisindex-i-producent-och-importled-ppi/"
   response_tj = requests.get(url_tj)
   soup_tj = BeautifulSoup(response_tj.text, "html.parser")
-  datum_tj = soup_tj.find("div", {"class": "row topIntro"}).find("a", {"class": "link-large link-icon-calendar link-icon"}).find("span").text
+  #datum_tj = soup_tj.find("div", {"class": "row topIntro"}).find("a", {"class": "link-large link-icon-calendar link-icon"}).find("span").text
 
   datum_bygg = next_publication.split(": ")[1].split("-")
   datum_bygg = "-".join([datum_bygg[0], datum_bygg[1], datum_bygg[2]])
@@ -73,8 +72,8 @@ with tab1:
   datum_ko = "-".join([datum_ko[0], datum_ko[1], datum_ko[2]])
   datum_n = datum_nr.split(": ")[1].split("-")
   datum_n = "-".join([datum_n[0], datum_n[1], datum_n[2]])
-  datum_t = datum_tj.split(": ")[1].split("-")
-  datum_t = "-".join([datum_t[0], datum_t[1], datum_t[2]])
+  #datum_t = datum_tj.split(": ")[1].split("-")
+  #datum_t = "-".join([datum_t[0], datum_t[1], datum_t[2]])
 
   # Printa kommande statistikuppdateringar i ordning efter närmast datum
   from datetime import datetime
@@ -83,8 +82,11 @@ with tab1:
                 (datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
                 (datetime.strptime(datum_b, "%Y-%m-%d"), "Byggkostnadsindex", datum_bki),
                 (datetime.strptime(datum_ko, "%Y-%m-%d"), "Konkurser", datum_k),
-                (datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr),
-                (datetime.strptime(datum_t, "%Y-%m-%d"), "Prisindex i producent- och importled (bl.a. tjänsteprisindex)", datum_tj)]
+                (datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
+                #(datetime.strptime(datum_t, "%Y-%m-%d"), "Prisindex i producent- och importled (bl.a. tjänsteprisindex)", datum_tj)
+
+  #alla_datum = [(datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
+                #(datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
 
   sorterade_datum = sorted(alla_datum, key=lambda x: x[0])
   for date, category, variable in sorterade_datum:
@@ -116,8 +118,11 @@ with tab1:
                   (datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
                   (datetime.strptime(datum_b, "%Y-%m-%d"), "Byggkostnadsindex", datum_bki),
                   (datetime.strptime(datum_ko, "%Y-%m-%d"), "Konkurser", datum_k),
-                  (datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr),
-                  (datetime.strptime(datum_t, "%Y-%m-%d"), "Prisindex i producent- och importled (bl.a. tjänsteprisindex)", datum_tj)]
+                  (datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
+                  #(datetime.strptime(datum_t, "%Y-%m-%d"), "Prisindex i producent- och importled (bl.a. tjänsteprisindex)", datum_tj)
+
+    #alla_datum = [(datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
+                  #(datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
 
     sorterade_datum = sorted(alla_datum, key=lambda x: x[0])
 
@@ -143,6 +148,45 @@ with tab2:
   download_counter = 0
   download_counter_excel = 0
 
+  import sqlite3
+  from datetime import datetime
+
+  # Connect to SQLite database (it will create the file if it doesn't exist)
+  conn = sqlite3.connect('/content/plot.db')
+  cursor = conn.cursor()
+
+  # Create a table for storing plot data
+  cursor.execute('''
+  CREATE TABLE IF NOT EXISTS plot_data (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plot_title TEXT,
+      x_values TEXT,
+      y_values TEXT,
+      source_url TEXT,
+      created_at TIMESTAMP
+  )
+  ''')
+
+  # Commit changes to the database
+  conn.commit()
+
+  def store_plot_data(values_dict, keys, title, source_url):
+    # Convert values_dict (y-values) and keys (x-values) to strings
+    y_values = str(values_dict)
+    x_values = str(keys)
+
+    # Get the current timestamp
+    created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Insert data into the database
+    cursor.execute('''
+    INSERT INTO plot_data (plot_title, x_values, y_values, source_url, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    ''', (title, x_values, y_values, source_url, created_at))
+
+    # Commit the changes
+    conn.commit()
+
   def create_bki_plot(values_dict, keys_kv, colors, title, source_url, underrubrik, bredd, source, rader_data, y_axis_label=None, index=False, bki=False, skip_ticks=False):
       """
       Creates a dynamic line plot based on multiple datasets with time on the x-axis.
@@ -157,6 +201,7 @@ with tab2:
       :param bredd: Width of the plot.
       :param source: Source text for the data reference.
       """
+      store_plot_data(values_dict, keys_kv, title, source_url)
       # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
 
@@ -324,7 +369,7 @@ with tab2:
       # Define layout with filtered tick positions and labels
       layout_bki_tot = go.Layout(
           title=title,
-          titlefont=dict(size=18),
+          font=dict(size=18),
           xaxis=dict(
               tickvals=final_tick_positions,  # Positions for major ticks
               ticktext=final_tick_labels,  # Only show the year at selected tick positions
@@ -486,6 +531,7 @@ with tab2:
       col1, col2, col3 = st.columns(3)
       display_download_button(fig)
       display_download_button_excel(old_df)
+      return df
 
   import requests
   import json
@@ -1062,6 +1108,333 @@ with tab2:
 with tab3:
   import requests
   import json
+  import math
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "Region",
+        "selection": {
+          "filter": "vs:RegionRiket99",
+          "values": [
+            "00"
+          ]
+        }
+      },
+      {
+        "code": "Boendeform",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "SMAG",
+            "SMBO",
+            "SMHY0",
+            "FBBO",
+            "FBHY0",
+            "SPBO",
+            "OB",
+            "ÖVRIGT",
+            "TOT"
+          ]
+        }
+      },
+      {
+        "code": "Alder",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "total"
+          ]
+        }
+      },
+      {
+        "code": "Kon",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "4"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://api.scb.se/OV0104/v1/doris/sv/ssd/START/HE/HE0111/HE0111A/HushallT31"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  keys = []
+  values_smag = []
+  values_smbo = []
+  values_smhyo = []
+  values_fbbo = []
+  values_fbhy0 = []
+  values_spbo = []
+  values_ob = []
+  values_ovr = []
+  values_tot = []
+
+  # Loopa igenom data
+  for entry in response_json['data']:
+      key = entry['key'][4]  # År
+      keys.append(key)
+      value = entry['values'][0]
+
+      if value != '..' and not math.isnan(float(value)):
+          value = float(value)
+
+          if entry['key'][1] == 'SMAG':
+              values_smag.append(value)
+          elif entry['key'][1] == 'SMBO':
+              values_smbo.append(value)
+          elif entry['key'][1] == 'SMHY0':
+              values_smhyo.append(value)
+          elif entry['key'][1] == 'FBBO':
+              values_fbbo.append(value)
+          elif entry['key'][1] == 'FBHY0':
+              values_fbhy0.append(value)
+          elif entry['key'][1] == 'SPBO':
+              values_spbo.append(value)
+          elif entry['key'][1] == 'OB':
+              values_ob.append(value)
+          elif entry['key'][1] == 'ÖVRIGT':
+              values_ovr.append(value)
+          elif entry['key'][1] == 'TOT':
+              values_tot.append(value)
+
+  # Beräkna andelen för varje kategori per år
+  shares_smag = [v / t if t != 0 else 0 for v, t in zip(values_smag, values_tot)]
+  shares_smbo = [v / t if t != 0 else 0 for v, t in zip(values_smbo, values_tot)]
+  shares_smhyo = [v / t if t != 0 else 0 for v, t in zip(values_smhyo, values_tot)]
+  shares_fbbo = [v / t if t != 0 else 0 for v, t in zip(values_fbbo, values_tot)]
+  shares_fbhy0 = [v / t if t != 0 else 0 for v, t in zip(values_fbhy0, values_tot)]
+  shares_spbo = [v / t if t != 0 else 0 for v, t in zip(values_spbo, values_tot)]
+  shares_ob = [v / t if t != 0 else 0 for v, t in zip(values_ob, values_tot)]
+  shares_ovr = [v / t if t != 0 else 0 for v, t in zip(values_ovr, values_tot)]
+  # Extrahera unika år
+  keys = sorted(set(keys))  # Skapa en lista med unika år
+
+  values_dict = {
+      'Småhus, äganderätt': [v * 100 for v in shares_smag],
+      'Småhus, bostadsrätt': [v * 100 for v in shares_smbo],
+      'Småhus, hyresrätt': [v * 100 for v in shares_smhyo],
+      'Flerbostadshus, bostadsrätt': [v * 100 for v in shares_fbbo],
+      'Flerbostadshus, hyresrätt': [v * 100 for v in shares_fbhy0],
+      'Specialbostad': [v * 100 for v in shares_spbo],
+      'Övrigt boende': [v * 100 for v in shares_ob],
+      'Uppgift saknas': [v * 100 for v in shares_ovr]
+  }
+
+
+  colors = [
+      'rgb(8,48,107)',    # Dark Blue
+      'rgb(204, 0, 0)',   # Red
+      'rgb(0,128,0)',     # Green
+      'rgb(255, 165, 0)', # Orange
+      'rgb(0,0,255)',     # Blue
+      'rgb(255, 255, 0)', # Yellow
+      'rgb(128,0,128)',   # Purple
+      'rgb(255, 105, 180)' # Hot Pink
+  ]
+
+  title = "Andel personer efter boendeform, riket"
+  source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__HE__HE0111__HE0111A/HushallT31/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 600, 'SCB och egna beräkningar', 0, y_axis_label = "Procent")
+
+  values_dict = {
+      'Småhus': [sum(x) * 100 for x in zip(shares_smag, shares_smbo, shares_smhyo)],
+      'Flerbostadshus': [sum(x) * 100 for x in zip(shares_fbbo, shares_fbhy0)],
+      'Specialbostad': [v * 100 for v in shares_spbo],
+      'Övrigt boende': [v * 100 for v in shares_ob],
+      'Uppgift saknas': [v * 100 for v in shares_ovr]
+  }
+
+  colors = [
+      'rgb(8,48,107)',    # Dark Blue
+      'rgb(204, 0, 0)',   # Red
+      'rgb(0,128,0)',     # Green
+      'rgb(255, 165, 0)', # Orange
+      'rgb(255, 105, 180)' # Hot Pink
+  ]
+
+  title = "Andel personer efter hustyp, riket"
+  source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__HE__HE0111__HE0111A/HushallT31/"
+
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 600, 'SCB och egna beräkningar', 0, y_axis_label = "Procent")
+
+  import requests
+  import json
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "Region",
+        "selection": {
+          "filter": "vs:RegionRiket99",
+          "values": [
+            "00"
+          ]
+        }
+      },
+      {
+        "code": "Hushallstyp",
+        "selection": {
+          "filter": "item",
+          "values": [
+            #"LEK",
+            #"LEKP",
+            #"LEM",
+            #"LEMP",
+            #"LEKB",
+            #"LEMB",
+            #"LS",
+            #"LS1",
+            #"LS2",
+            #"LS3",
+            #"LÖ",
+            #"LÖMB",
+            "SAMTLH"
+          ]
+        }
+      },
+      {
+        "code": "Boendeform",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "SMAG",
+            "SMBO",
+            "SMHY0",
+            "FBBO",
+            "FBHY0",
+            "SPBO",
+            "OB",
+            "OVR",
+            "TOT"
+          ]
+        }
+      },
+      {
+        "code": "ContentsCode",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "HE0111EE"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://api.scb.se/OV0104/v1/doris/sv/ssd/START/HE/HE0111/HE0111A/HushallT22"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  import math
+
+  keys = []
+  values_smag = []
+  values_smbo = []
+  values_smhyo = []
+  values_fbbo = []
+  values_fbhy0 = []
+  values_spbo = []
+  values_ob = []
+  values_ovr = []
+  values_tot = []
+
+  # Loopa igenom data
+  for entry in response_json['data']:
+      key = entry['key'][3]  # År
+      keys.append(key)
+      value = entry['values'][0]
+
+      if value != '..' and not math.isnan(float(value)):
+          value = float(value)
+
+          if entry['key'][2] == 'SMAG':
+              values_smag.append(value)
+          elif entry['key'][2] == 'SMBO':
+              values_smbo.append(value)
+          elif entry['key'][2] == 'SMHY0':
+              values_smhyo.append(value)
+          elif entry['key'][2] == 'FBBO':
+              values_fbbo.append(value)
+          elif entry['key'][2] == 'FBHY0':
+              values_fbhy0.append(value)
+          elif entry['key'][2] == 'SPBO':
+              values_spbo.append(value)
+          elif entry['key'][2] == 'OB':
+              values_ob.append(value)
+          elif entry['key'][2] == 'OVR':
+              values_ovr.append(value)
+          elif entry['key'][2] == 'TOT':
+              values_tot.append(value)
+
+  keys = sorted(set(keys))
+
+  values_dict = {
+    'Småhus, äganderätt': values_smag,
+    'Småhus, bostadsrätt': values_smbo,
+    'Småhus, hyresrätt': values_smhyo,
+    'Flerbostadshus, bostadsrätt': values_fbbo,
+    'Flerbostadshus, hyresrätt': values_fbhy0,
+    'Specialbostad': values_spbo,
+    'Övrigt boende': values_ob,
+    'Uppgift saknas': values_ovr
+  }
+
+  colors = [
+      'rgb(8,48,107)',    # Dark Blue
+      'rgb(204, 0, 0)',   # Red
+      'rgb(0,128,0)',     # Green
+      'rgb(255, 165, 0)', # Orange
+      'rgb(0,0,255)',     # Blue
+      'rgb(255, 255, 0)', # Yellow
+      'rgb(128,0,128)',   # Purple
+      'rgb(255, 105, 180)' # Hot Pink
+  ]
+
+  title = "Andel hushåll efter boendeform, riket"
+  source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__HE__HE0111__HE0111A/HushallT22/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 600, 'SCB och egna beräkningar', 0, y_axis_label = "Procent")
+
+  values_dict = {
+    'Småhus': [sum(x) for x in zip(values_smag, values_smbo, values_smhyo)],
+    'Flerbostadshus': [sum(x) for x in zip(values_fbbo, values_fbhy0)],
+    'Specialbostad': values_spbo,
+    'Övrigt boende': values_ob,
+    'Uppgift saknas': values_ovr
+  }
+
+  colors = [
+      'rgb(8,48,107)',    # Dark Blue
+      'rgb(204, 0, 0)',   # Red
+      'rgb(0,128,0)',     # Green
+      'rgb(255, 165, 0)', # Orange
+      'rgb(255, 105, 180)' # Hot Pink
+  ]
+
+  title = "Andel hushåll efter hustyp, riket"
+  source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__HE__HE0111__HE0111A/HushallT22/"
+
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 600, 'SCB och egna beräkningar', 0, y_axis_label = "Procent")
+
+with tab4:
+  import requests
+  import json
 
   session = requests.Session()
 
@@ -1097,9 +1470,18 @@ with tab3:
   values_fle = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'FLERBO' and entry['key'][1] == 'TOTAL']
   values_sma = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'GRUPPSMÅ' and entry['key'][1] == 'TOTAL']
 
+  # Find the minimum length among all arrays
+  min_length = min(len(keys_kv), len(values_fle), len(values_sma))
+
+  # Trim each array to match the minimum length
+  keys_kv_trimmed = keys_kv[:min_length]
+  values_fle_trimmed = values_fle[:min_length]
+  values_sma_trimmed = values_sma[:min_length]
+
+  # Create a dictionary with the trimmed values
   values_dict = {
-      'Flerbostadshus': values_fle,
-      'Gruppbyggda småhus': values_sma
+      'Flerbostadshus': values_fle_trimmed,
+      'Gruppbyggda småhus': values_sma_trimmed
   }
 
   # Find the index for January 2021 in keys_kv (format 'YYYYMXX', i.e., '2021M01')
@@ -1115,10 +1497,16 @@ with tab3:
       # Normalize the entire series so that the value for January 2021 equals 100
       values_dict[label] = [(value / january_2021_value) * 100 for value in values_dict[label]]
 
+  # Convert to DataFrame
+  combined_df = pd.DataFrame({'Time': keys_kv_trimmed, **values_dict})
+  rader = 72
+  combined_df = combined_df.iloc[rader:]
+
   colors = ['rgb(8,48,107)', 'rgb(204, 0, 0)']
   title = "Byggkostnadsindex för bostäder exkl. löneglidning och moms"
   source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__PR__PR0502__PR0502A/FPIBOM2015/"
   create_bki_plot(values_dict, keys_kv, colors, title, source_url, 'Index, januari 2021 = 100', 600, 'SCB och egna beräkningar', 72, bki=True)
+  #df_bki = create_bki_plot(values_dict, keys_kv, colors, title, source_url, 'Index, januari 2021 = 100', 600, 'SCB och egna beräkningar', 72, bki=True)
 
   st.header("Senaste utfall", divider=True)
   col1, col2, col3 = st.columns(3)
@@ -1236,7 +1624,7 @@ with tab3:
       # Define layout
       layout_bki_tot = go.Layout(
           title=title,
-          titlefont=dict(size=18),
+          font=dict(size=18),
           xaxis=dict(
               tickvals=final_tick_positions,
               ticktext=final_tick_labels,
@@ -1332,7 +1720,7 @@ with tab3:
           global download_counter_excel  # Use the global counter variable
 
           # Create an Excel file from the DataFrame
-          df_xlsx = to_excel(df.iloc[:, :-2])
+          df_xlsx = to_excel(df.iloc[:, :])
 
           # Add a download button for the Excel file with a unique key
           col2.download_button(
@@ -1435,12 +1823,95 @@ with tab3:
       # Normalize the entire series so that the value for January 2021 equals 100
       values_dict[label] = [(value / january_2021_value) * 100 for value in values_dict[label]]
 
-
   colors = ['rgb(8,48,107)', 'rgb(204, 0, 0)', 'orange', '#509D00', '#004B84', '#E87502']
   title = "Byggkostnadsindex för flerbostadshus"
   source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__PR__PR0502__PR0502A/FPIBOM2015/"
   create_bki_plot(values_dict, keys_kv, colors, title, source_url, 'Index, januari 2021 = 100', 600, 'SCB och egna beräkningar', 72, index=False, bki=True)
   create_bki_yoy_plot(values_dict, keys_kv, colors, title, source_url, 'SCB och egna beräkningar')
+
+  # Convert `keys_kv` to a DataFrame
+  keys_df_år = pd.DataFrame({'Key': keys_kv})
+
+  # Convert `values_dict` to a DataFrame
+  values_df_år = pd.DataFrame(values_dict)
+
+  # Combine the DataFrames
+  combined_df_år = pd.concat([keys_df_år, values_df_år], axis=1)
+  combined_df_år = combined_df_år.iloc[72:120]
+
+  month_map = {
+          '01': 'jan', '02': 'feb', '03': 'mar', '04': 'apr', '05': 'maj', '06': 'jun',
+          '07': 'jul', '08': 'aug', '09': 'sep', '10': 'okt', '11': 'nov', '12': 'dec'
+  }
+
+  combined_df_år['Key'] = combined_df_år['Key'].str[5:].map(month_map) + '-' + combined_df_år['Key'].str[2:4]
+  combined_df_år = combined_df_år.rename(columns={"Key": "Time"})  # Rename column
+
+  import requests
+  import json
+
+  session = requests.Session()
+
+  query = {
+    "query": [],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://api.scb.se/OV0104/v1/doris/sv/ssd/START/PR/PR0502/PR0502A/BKIMAM"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  # Step 1: Get all unique time periods
+  keys = sorted(set(entry['key'][1] for entry in response_json['data']))
+
+  custom_names = {
+    'TRA': 'Trävaror',
+    'BET': 'Betong',
+    'SNICK': 'Snickerier',
+    'JOS': 'Järn- och stålvaror',
+    'DARM': 'Armeringsstål',
+    'VIT': 'Vita varor',
+    'GOLV': 'Golvmaterial',
+    'MAL': 'Material för målning',
+    'OVR': 'Övrigt byggmaterial',
+    'BTOT': 'Byggmästerivaror total',
+    'VS': 'VVS-material',
+    'EL': 'El-material'
+  }
+
+  # Step 2: Group values by key[0]
+  values_dict = {}
+  for entry in response_json['data']:
+      original_category = entry['key'][0]  # This is 'BET', 'P010', or other values
+      category_name = custom_names.get(original_category, original_category)  # Use mapping, default to original name
+
+      if category_name not in values_dict:
+          values_dict[category_name] = []
+
+      values_dict[category_name].append(float(entry['values'][0]))
+
+  colors = [
+      'rgb(8,48,107)',   # Deep Blue
+      'rgb(204, 0, 0)',  # Strong Red
+      'rgb(255,140,0)',  # Dark Orange
+      'rgb(80,157,0)',   # Deep Green
+      'rgb(0,75,132)',   # Navy Blue
+      'rgb(232,117,2)',  # Warm Orange
+      'rgb(128,0,128)',  # Purple
+      'rgb(0,128,128)',  # Teal
+      'rgb(75,0,130)',   # Indigo
+      'rgb(220,20,60)',  # Crimson
+      'rgb(34,139,34)',  # Forest Green
+      'rgb(70,130,180)'  # Steel Blue
+  ]
+
+  title = "Byggkostnadsindex för flerbostadshus efter byggnadsmaterial"
+  source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__PR__PR0502__PR0502A/BKIMAM/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, 'Index, 1968 = 100', 600, 'SCB', 72, index=False, bki=True)
+  create_bki_yoy_plot(values_dict, keys, colors, title, source_url, 'SCB och egna beräkningar')
 
   #@st.cache_data
   #def save_figure_as_image(fig, format='png'):
@@ -1478,19 +1949,7 @@ with tab3:
   #                              file_name= 'df_test.xlsx',
   #                              key="10")
 
-  #chat_completion = groq_client.chat.completions.create(
-  #  messages=[
-  #      {
-  #          "role": "user",
-  #          "content": f"Firstly, based on the data in the dataframe {df_tot}, which displays index levels for the monthly (each month and year is given in the column 'Time') cost of housing construction for multi-family homes (Flerbostadshus) as well as single-family homes (Gruppbyggda småhus), describe the trend for both with: 1) five-year change  2) one year change (see {df[48:]}) 3) last quarter change {df[57:]} 4) one month. Comment it from a perspective that a normal rate would be usually around 2% inflation rate (however: do not explicitly write anything about that 2% is expected). Secondly, do the same analysis for the dataframe {df}, this dataframe shows the different parts of the costs and how they have developed for Flerbostadshus (see figure {bki_fler})",
-  #      }
-  #  ],
-  #  model=llama_70B,
-#)
-  #bki_summary = chat_completion.choices[0].message.content
-#  st.write((chat_completion.choices[0].message.content))
-
-with tab4:
+with tab5:
 
   ##### Barometerindikatorn, månadsvis. Ingår frågorna: Orderstocken, nulägesomdöme + Antal anställda, förväntningar.
 
@@ -1573,7 +2032,7 @@ with tab4:
   colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
   title = "Konfidensindikatorn"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__indikatorer/Indikatorm.px/"
-  create_bki_plot(values_dict, keys_barometer, colors, title, source_url, "Index medelvärde = 100", 700, 'Konjunkturinstitutet', -61, index=True)
+  df_kbarometern = create_bki_plot(values_dict, keys_barometer, colors, title, source_url, "Index medelvärde = 100", 700, 'Konjunkturinstitutet', -61, index=True)
 
   data_barometerindikatorn = [go.Scatter(
               x=keys_barometer,
@@ -1801,17 +2260,6 @@ with tab4:
   formatted_change = f"{absolute_change:,.1f}".replace(',', ' ')
   col3.metric(f"Anläggningsverksamhet (SNI 42)", latest_formatted_value, formatted_change)
 
-  #chat_completion = groq_client.chat.completions.create(
-  #messages=[
-  #      {
-  #          "role": "user",
-  #          "content": f"Firstly, based on the data in the dataframe {df}, which displays index levels for the monthly (each month and year is given in the column 'Time') confidence indicator, which is used to summarize the situation and expectations in a particular industry or sector, for the construction sector (as well as sub-parts of it, where perhaps Husbyggande is the most important (i.e. companies that build houses), describe the trend with: 1) three-year change  2) one year change (see {df[48:]}) 3) last quarter change {df[57:]} 4) one month. Comment it from a perspective that a normal rate would be around 100 (however: do not explicitly write anything about that 100 is expected).",
-  #      }
-  #],
-  #model=llama_70B,
-#)
- # ki_summary = chat_completion.choices[0].message.content
-
   barometer_bbyg = pd.DataFrame({'År': keys_barometer[:len(values_bbyg)], 'Byggindustri (SNI 41-43)': values_bbyg})
   barometer_bboa = pd.DataFrame({'År2': keys_barometer[:len(values_bbyg)], 'Bygg & anläggning (SNI 41-42)': values_bboa})
   barometer_b41 = pd.DataFrame({'År3': keys_barometer[:len(values_bbyg)], 'Husbyggande (SNI 41)': values_b41})
@@ -1824,91 +2272,7 @@ with tab4:
   # Remove the third column
   df_barometer = df_barometer.drop(['År2', 'År3', 'År4', 'År5', 'År6'], axis=1)
 
-  ### Anbudspriser, utfall (säsongsrensat)
-
-  import requests
-  import json
-
-  session = requests.Session()
-
-  query = {
-    "query": [
-      {
-        "code": "Fråga",
-        "selection": {
-          "filter": "item",
-          "values": [
-            "102"
-          ]
-        }
-      },
-      {
-        "code": "Serie",
-        "selection": {
-          "filter": "item",
-          "values": [
-            "S"
-          ]
-        }
-      }
-    ],
-    "response": {
-      "format": "json"
-    }
-  }
-
-  url = "https://statistik.konj.se:443/PxWeb/api/v1/sv/KonjBar/ftgmanad/Barboam.px"
-
-  response = session.post(url, json=query)
-  response_json = json.loads(response.content.decode('utf-8-sig'))
-
-  import plotly.graph_objs as go
-  import plotly.offline as pyo
-  import math
-
-  keys_anbud = []
-  values_bbyg = []
-  values_bboa = []
-  values_b41 = []
-  values_b42 = []
-  values_b43 = []
-
-  for entry in response_json['data']:
-      if entry['key'][3] >= '2010M05':
-          if entry['key'][0] == 'BBYG':
-              value = entry['values'][0]
-              if value != '..' and not math.isnan(float(value)):
-                  values_bbyg.append(float(value))
-          elif entry['key'][0] == 'BBOA':
-              value = entry['values'][0]
-              if value != '..' and not math.isnan(float(value)):
-                  values_bboa.append(float(value))
-          elif entry['key'][0] == 'B41000':
-              value = entry['values'][0]
-              if value != '..' and not math.isnan(float(value)):
-                  values_b41.append(float(value))
-          elif entry['key'][0] == 'B42000':
-              value = entry['values'][0]
-              if value != '..' and not math.isnan(float(value)):
-                  values_b42.append(float(value))
-          elif entry['key'][0] == 'B43000':
-              value = entry['values'][0]
-              if value != '..' and not math.isnan(float(value)):
-                  values_b43.append(float(value))
-          keys_anbud.append(entry['key'][3])
-
-  values_dict = {
-    'Byggindustri (SNI 41-43)': values_bbyg,
-    'Bygg & anläggning (SNI 41-42)': values_bboa,
-    'Husbyggande (SNI 41)': values_b41,
-    'Anläggningsverksamhet (SNI 42)': values_b42,
-    'Specialiserad byggverksamhet (SNI 43)': values_b43,
-  }
-
-  colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
-  title = "Anbudspriser, utfall (säsongsrensat)"
-  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
-  create_bki_plot(values_dict, keys_barometer, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
+### Byggandet
 
   import requests
   import json
@@ -1932,7 +2296,7 @@ with tab4:
         "selection": {
           "filter": "item",
           "values": [
-            "O"
+            "S"
           ]
         }
       }
@@ -1987,9 +2351,9 @@ with tab4:
   }
 
   colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
-  title = "Byggandet, utfall"
+  title = "Byggandet, utfall (säsongsrensat)"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
-  create_bki_plot(values_dict, keys, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
+  df_byggande_utfall = create_bki_plot(values_dict, keys, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
 
   session = requests.Session()
 
@@ -2010,7 +2374,7 @@ with tab4:
         "selection": {
           "filter": "item",
           "values": [
-            "O"
+            "S"
           ]
         }
       }
@@ -2065,9 +2429,9 @@ with tab4:
   }
 
   colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
-  title = "Byggandet, förväntningar"
+  title = "Byggandet, förväntningar (säsongsrensat)"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
-  create_bki_plot(values_dict, keys, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
+  df_byggande = create_bki_plot(values_dict, keys, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
 
   #st.header("Hämta", divider=True)
   #df_xlsx = to_excel(df)
@@ -2240,6 +2604,21 @@ with tab4:
     'Specialiserad byggverksamhet (SNI 43)': values_b43,
   }
 
+  min_length = min(len(keys_planer), len(values_bbyg), len(values_bboa),
+                 len(values_b41), len(values_b42), len(values_b43))
+
+  keys_planer_trimmed = keys_planer[:min_length]
+  values_dict_trimmed = {
+    'Byggindustri': values_bbyg[:min_length],
+    'Bygg & anläggning': values_bboa[:min_length],
+    'Husbyggande': values_b41[:min_length],
+    'Anläggningsverksamhet': values_b42[:min_length],
+    'Specialiserad byggverksamhet': values_b43[:min_length],
+}
+
+  # Convert to DataFrame
+  combined_df_planer = pd.DataFrame({'Time': keys_planer_trimmed, **values_dict_trimmed})
+
   colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
   title = "Anställningsplaner (säsongsrensat)"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
@@ -2251,6 +2630,92 @@ with tab4:
   #                              data=df_xlsx,
   #                              file_name= 'df_test.xlsx',
   #                              key="6")
+
+### Anbudspriser, utfall (säsongsrensat)
+
+  import requests
+  import json
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "Fråga",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "102"
+          ]
+        }
+      },
+      {
+        "code": "Serie",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "S"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://statistik.konj.se:443/PxWeb/api/v1/sv/KonjBar/ftgmanad/Barboam.px"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  import plotly.graph_objs as go
+  import plotly.offline as pyo
+  import math
+
+  keys_anbud = []
+  values_bbyg = []
+  values_bboa = []
+  values_b41 = []
+  values_b42 = []
+  values_b43 = []
+
+  for entry in response_json['data']:
+      if entry['key'][3] >= '2010M05':
+          if entry['key'][0] == 'BBYG':
+              value = entry['values'][0]
+              if value != '..' and not math.isnan(float(value)):
+                  values_bbyg.append(float(value))
+          elif entry['key'][0] == 'BBOA':
+              value = entry['values'][0]
+              if value != '..' and not math.isnan(float(value)):
+                  values_bboa.append(float(value))
+          elif entry['key'][0] == 'B41000':
+              value = entry['values'][0]
+              if value != '..' and not math.isnan(float(value)):
+                  values_b41.append(float(value))
+          elif entry['key'][0] == 'B42000':
+              value = entry['values'][0]
+              if value != '..' and not math.isnan(float(value)):
+                  values_b42.append(float(value))
+          elif entry['key'][0] == 'B43000':
+              value = entry['values'][0]
+              if value != '..' and not math.isnan(float(value)):
+                  values_b43.append(float(value))
+          keys_anbud.append(entry['key'][3])
+
+  values_dict = {
+    'Byggindustri (SNI 41-43)': values_bbyg,
+    'Bygg & anläggning (SNI 41-42)': values_bboa,
+    'Husbyggande (SNI 41)': values_b41,
+    'Anläggningsverksamhet (SNI 42)': values_b42,
+    'Specialiserad byggverksamhet (SNI 43)': values_b43,
+  }
+
+  colors = ['#A2B1B3', '#D9CC00', '#2BB2F7', '#509D00', '#004B84', '#E87502']
+  title = "Anbudspriser, utfall (säsongsrensat)"
+  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
+  create_bki_plot(values_dict, keys_barometer, colors, title, source_url, "Senaste utfall", 700, 'Konjunkturinstitutet', -61, index=True)
 
   ### Främsta hindren
   import requests
@@ -2331,6 +2796,22 @@ with tab4:
     'Annat': values_annat,
   }
 
+  # Ensure all lists are of equal length
+  min_length = min(len(keys_hinder), len(values_efterfragan), len(values_material),
+                 len(values_arbetskraft), len(values_finans), len(values_annat))
+
+  keys_hinder_trimmed = keys_hinder[:min_length]
+  values_dict_trimmed = {
+    'Efterfrågan': values_efterfragan[:min_length],
+    'Material och/eller utrustning': values_material[:min_length],
+    'Arbetskraft': values_arbetskraft[:min_length],
+    'Finansiella restriktioner': values_finans[:min_length],
+    'Annat': values_annat[:min_length],
+}
+
+  # Convert to DataFrame
+  combined_df = pd.DataFrame({'Time': keys_hinder_trimmed, **values_dict_trimmed})
+
   colors = ['#0072B2', '#FFC20A', '#DC4405', '#009E73', '#9850D5', '#F79F1F']
   title = "Främsta hinder för byggande (hela byggindustrin)"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
@@ -2377,6 +2858,18 @@ with tab4:
     'Finansiella restriktioner': values_finans,
     'Annat': values_annat,
   }
+
+  keys_hinder_trimmed = keys_hinder[:min_length]
+  values_dict_trimmed = {
+    'Efterfrågan': values_efterfragan[:min_length],
+    'Material och/eller utrustning': values_material[:min_length],
+    'Arbetskraft': values_arbetskraft[:min_length],
+    'Finansiella restriktioner': values_finans[:min_length],
+    'Annat': values_annat[:min_length],
+}
+
+  # Convert to DataFrame
+  combined_df_hus = pd.DataFrame({'Time': keys_hinder_trimmed, **values_dict_trimmed})
 
   colors = ['#0072B2', '#FFC20A', '#DC4405', '#009E73', '#9850D5', '#F79F1F']
   title = "Främsta hinder för husbyggande (SNI 41)"
@@ -2425,6 +2918,18 @@ with tab4:
     'Annat': values_annat,
   }
 
+  keys_hinder_trimmed = keys_hinder[:min_length]
+  values_dict_trimmed = {
+    'Efterfrågan': values_efterfragan[:min_length],
+    'Material och/eller utrustning': values_material[:min_length],
+    'Arbetskraft': values_arbetskraft[:min_length],
+    'Finansiella restriktioner': values_finans[:min_length],
+    'Annat': values_annat[:min_length],
+}
+
+  # Convert to DataFrame
+  combined_df_anl = pd.DataFrame({'Time': keys_hinder_trimmed, **values_dict_trimmed})
+
   colors = ['#0072B2', '#FFC20A', '#DC4405', '#009E73', '#9850D5', '#F79F1F']
   title = "Främsta hinder för anläggningsverksamhet (SNI 42)"
   source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__ftgmanad/Barboam.px/"
@@ -2437,7 +2942,146 @@ with tab4:
   #                              file_name= 'df_test.xlsx',
   #                              key="15")
 
-with tab5:
+  import requests
+  import json
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "Fråga",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "Q010",
+            "Q020"
+          ]
+        }
+      },
+      {
+        "code": "Serie",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "S"
+          ]
+        }
+      },
+      {
+        "code": "Grupp",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "100"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://statistik.konj.se:443/PxWeb/api/v1/sv/KonjBar/hushall/hushall.px"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  # Extract keys[3] (date values) and values[0] (numeric values) only when keys[0] == 'Q010'
+  keys = [entry['key'][3] for entry in response_json['data'] if entry['key'][0] == 'Q010']
+  # Convert values_dict into a dictionary
+  values_dict = {'Q010': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q010']}
+
+  colors = ['#0072B2', '#FFC20A']
+  title = "Hushållets ekonomi nu jämfört med 12 månader sedan"
+  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__hushall/hushall.px/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 650, 'Konjunkturinstitutet', -61)
+
+  keys = [entry['key'][3] for entry in response_json['data'] if entry['key'][0] == 'Q020']
+  # Convert values_dict into a dictionary
+  values_dict = {'Q020': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q020']}
+
+  title = "Hushållets ekonomi om 12 månader"
+  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__hushall/hushall.px/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 650, 'Konjunkturinstitutet', -61)
+
+  import requests
+  import json
+
+  session = requests.Session()
+
+  query = {
+    "query": [
+      {
+        "code": "Fråga",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "Q010",
+            "Q020"
+          ]
+        }
+      },
+      {
+        "code": "Serie",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "S"
+          ]
+        }
+      },
+      {
+        "code": "Grupp",
+        "selection": {
+          "filter": "item",
+          "values": [
+            "701",
+            "702",
+            "703"
+          ]
+        }
+      }
+    ],
+    "response": {
+      "format": "json"
+    }
+  }
+
+  url = "https://statistik.konj.se:443/PxWeb/api/v1/sv/KonjBar/hushall/hushall.px"
+
+  response = session.post(url, json=query)
+  response_json = json.loads(response.content.decode('utf-8-sig'))
+
+  # Extract data for each value of key[2]
+  keys = [entry['key'][3] for entry in response_json['data'] if entry['key'][0] == 'Q010' and entry['key'][2] == '701']
+  values_dict = {
+      'Hyresrätt': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q010' and entry['key'][2] == '701'],
+      'Bostadsrätt': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q010' and entry['key'][2] == '702'],
+      'Småhus': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q010' and entry['key'][2] == '703']
+  }
+
+  colors = ['#0072B2', '#FFC20A', '#DC4405']
+  title = "Hushållets ekonomi nu jämfört med 12 månader sedan (bostadstyp)"
+  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__hushall/hushall.px/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 650, 'Konjunkturinstitutet', -61)
+
+  keys = [entry['key'][3] for entry in response_json['data'] if entry['key'][0] == 'Q020' and entry['key'][2] == '701']
+  values_dict = {
+      'Hyresrätt': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q020' and entry['key'][2] == '701'],
+      'Bostadsrätt': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q020' and entry['key'][2] == '702'],
+      'Småhus': [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'Q020' and entry['key'][2] == '703']
+  }
+
+  title = "Hushållets ekonomi om 12 månader (bostadstyp)"
+  source_url = "https://statistik.konj.se/PxWeb/pxweb/sv/KonjBar/KonjBar__hushall/hushall.px/"
+  create_bki_plot(values_dict, keys, colors, title, source_url, "", 650, 'Konjunkturinstitutet', -61)
+
+  #st.write(df_byggande)
+  #st.write(df_byggande_utfall)
+
+with tab6:
   ### Bostadsinvesteringar (work in progress..)
 
   import requests
@@ -2587,7 +3231,9 @@ with tab5:
             "2023K4",
             "2024K1",
             "2024K2",
-            "2024K3"
+            "2024K3",
+            "2024K4",
+            "2025K1"
           ]
         }
       }
@@ -2665,7 +3311,7 @@ with tab5:
 
   layout_inv = go.Layout(
       title='Bostadsinvesteringar',
-      titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
+      font=dict(size=18),  # Adjust font size to fit the title within the available space
       xaxis=dict(
           # Remove tickvals and ticktext properties
           tickangle=270,  # Rotate x-axis tick labels 180 degrees
@@ -2864,7 +3510,9 @@ with tab5:
             "2023K4",
             "2024K1",
             "2024K2",
-            "2024K3"
+            "2024K3",
+            "2024K4",
+            "2025K1"
           ]
         }
       }
@@ -2938,7 +3586,7 @@ with tab5:
 
   layout_ovrigt_lopande = go.Layout(
       title='Investeringar i övriga byggnader och anläggningar',
-      titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
+      font=dict(size=18),  # Adjust font size to fit the title within the available space
       xaxis=dict(
           # Remove tickvals and ticktext properties
           tickangle=270,  # Rotate x-axis tick labels 180 degrees
@@ -3145,7 +3793,9 @@ with tab5:
             "2023K4",
             "2024K1",
             "2024K2",
-            "2024K3"
+            "2024K3",
+            "2024K4",
+            "2025K1"
           ]
         }
       }
@@ -3219,7 +3869,7 @@ with tab5:
 
   layout_inv_fast = go.Layout(
       title='Bostadsinvesteringar',
-      titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
+      font=dict(size=18),  # Adjust font size to fit the title within the available space
       xaxis=dict(
           # Remove tickvals and ticktext properties
           tickangle=270,  # Rotate x-axis tick labels 180 degrees
@@ -3426,7 +4076,9 @@ with tab5:
             "2023K4",
             "2024K1",
             "2024K2",
-            "2024K3"
+            "2024K3",
+            "2024K4",
+            "2025K1"
           ]
         }
       }
@@ -3499,7 +4151,7 @@ with tab5:
 
   layout_inv_ovrigt = go.Layout(
       title='Investeringar i övriga byggnader och anläggningar',
-      titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
+      font=dict(size=18),  # Adjust font size to fit the title within the available space
       xaxis=dict(
           # Remove tickvals and ticktext properties
           tickangle=270,  # Rotate x-axis tick labels 180 degrees
@@ -3722,17 +4374,6 @@ with tab5:
   formatted_change_ovrig = f"{percentage_change_ovrig:.1f}".replace('.', ',') + '%'
   col2.metric(f"Övriga byggnader och anläggningar", latest_formatted_value, formatted_change_ovrig)
 
-  #chat_completion = groq_client.chat.completions.create(
-  #messages=[
-  #      {
-  #          "role": "user",
-  #          "content": f"Firstly, based on the data in the dataframe {combined_df}, which displays investments in housing and other buildings and facilities quarterly (given by the column 'Time'), describe the trend with: 1) three-year change  2) one year change (see {df[48:]}) 3) last quarter change {df[57:]}.",
-  #      }
-  #],
-  #model=llama_70B,
-#)
-#  inv_summary = chat_completion.choices[0].message.content
-
   new_annotation = dict(
       xref='paper',
       yref='paper',
@@ -3749,7 +4390,7 @@ with tab5:
   layout_combined['title']['x'] = 0.1
   combined = go.Figure(data=data_combined, layout=layout_combined, layout_width=500)
 
-with tab6:
+with tab7:
   import requests
   import json
 
@@ -4071,7 +4712,7 @@ with tab6:
     # Layout
     layout_fardig = go.Layout(
         title='Färdigställda bostäder per år',
-        titlefont=dict(size=18),  # Adjust font size to fit the title within the available space
+        font=dict(size=18),  # Adjust font size to fit the title within the available space
         xaxis=dict(
             # Remove tickvals and ticktext properties
             tickangle=0,  # Rotate x-axis tick labels 180 degrees
@@ -4166,7 +4807,7 @@ with tab6:
     # Step 4: Update layout for the new plot (title change)
     layout_percentage = go.Layout(
         title='Andel färdigställda bostäder per år och hustyp',
-        titlefont=dict(size=18),
+        font=dict(size=18),
         xaxis=dict(
             tickangle=0,
             showline=True,
@@ -4371,7 +5012,7 @@ with tab6:
         # Layout
         layout = go.Layout(
             title=f'Färdigställda {house_type} per år och upplåtelseform',
-            titlefont=dict(size=18),
+            font=dict(size=18),
             xaxis=dict(
                 tickvals=tick_positions,
                 tickangle=0,
@@ -4594,17 +5235,6 @@ with tab6:
   #                              file_name= 'df_test.xlsx',
   #                              key="30")
 
-  #chat_completion = groq_client.chat.completions.create(
-  #messages=[
-  #      {
-  #          "role": "user",
-  #          "content": f"Firstly, based on the data in the dataframe {df}, which displays housing starts (multi family housing, Flerbostadshus, as well as single family housing, Småhus) quarterly (given by the column 'Time'), describe the trend with: 1) three-year change  2) one year change (see {df[48:]}) 3) last quarter change {df[57:]}.",
-  #      }
-  #],
-  #model=llama_70B,
-#)
- # paborjade_summary = chat_completion.choices[0].message.content
-
   elif selected_title == "Ombyggnad":
     #st.title("Ombyggnad")
     import requests
@@ -4707,7 +5337,7 @@ with tab6:
     source_url = "https://www.statistikdatabasen.scb.se/pxweb/sv/ssd/START__BO__BO0101__BO0101B/LagenhetOmbNKv/"
     create_bki_plot(values_dict, keys_ombyggnad, colors, title, source_url, "Senaste utfall", 500, 'SCB', 0)
 
-with tab7:
+with tab8:
   import eurostat
   toc_df = eurostat.get_toc_df()
 
@@ -4801,7 +5431,7 @@ with tab7:
       # Layout for final ticks and x-tick formatting
       layout_bki_tot = go.Layout(
           title=title,
-          titlefont=dict(size=18),
+          font=dict(size=18),
           xaxis=dict(
               tickvals=final_tick_positions,  # Positions where we want to show the x-ticks (only for Q1)
               ticktext=final_tick_labels,  # Show only the year at the selected tick positions
@@ -5199,7 +5829,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5210,15 +5840,19 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the legend entries
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
 
   # Create sub-heading as an annotation
@@ -5229,7 +5863,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='I städer, 2010-2023',  # Your sub-heading text
+      text='I städer, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5320,7 +5954,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5331,16 +5965,21 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the x-axis labels
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
+
 
   # Create sub-heading as an annotation
   sub_heading_annotation = dict(
@@ -5350,7 +5989,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='Hela befolkningen, 2010-2023',  # Your sub-heading text
+      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5438,7 +6077,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5449,15 +6088,19 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the x-axis labels
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
 
   # Create sub-heading as an annotation
@@ -5468,7 +6111,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2023',  # Your sub-heading text
+      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5557,7 +6200,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5568,15 +6211,19 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the x-axis labels
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
 
   # Create sub-heading as an annotation
@@ -5587,7 +6234,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='Hela befolkningen, 2010-2023',  # Your sub-heading text
+      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5676,7 +6323,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5687,15 +6334,19 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the legend entries
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
 
   # Create sub-heading as an annotation
@@ -5706,7 +6357,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='Hela befolkningen, 2010-2023',  # Your sub-heading text
+      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5803,7 +6454,7 @@ with tab7:
   data_long = pd.melt(
       data,
       id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2024)],  # Columns representing years
+      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
       var_name='year',  # Name for the melted 'year' column
       value_name='value'  # Name for the melted 'value' column
   )
@@ -5814,15 +6465,19 @@ with tab7:
   # Step 5: Plot with Plotly
   fig = go.Figure()
 
-  # Add a line for each country
-  for country in data_long['geo'].unique():
+  # Define colors for each country
+  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
+
+  # Add a line for each country with a specific color
+  for idx, country in enumerate(data_long['geo'].unique()):
       country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country  # Rename 'EU27_2020' to 'EU'
+      country_label = 'EU' if country == 'EU27_2020' else country
       fig.add_trace(go.Scatter(
           x=country_data['year'],
           y=country_data['value'],
           mode='lines+markers',
-          name=country_label  # Set the name to match the legend entries
+          name=country_label,
+          line=dict(color=colors[idx])  # Assign specific color
       ))
 
   # Create sub-heading as an annotation
@@ -5833,7 +6488,7 @@ with tab7:
       y=1.03,  # Position just above the plot area, below the main title
       xanchor='center',
       yanchor='bottom',
-      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2023',  # Your sub-heading text
+      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2024',  # Your sub-heading text
       font=dict(size=14, color='black'),  # Set font size and color
       showarrow=False
   )
@@ -5901,7 +6556,7 @@ with tab7:
                                 data=df_xlsx,
                                 file_name= 'df_test.xlsx',
                                 key="42")
-with tab8:
+with tab9:
   # Data till diagram 3.3
   import requests
   import json
@@ -6497,5 +7152,6 @@ with tab8:
   st.write(df_combined_kpi.round(1))
   st.subheader("** Tabell 3.3 Påbörjade bostäder och befolkningsökning **")
   st.write(df_combined_tot.round(0).fillna(0).astype(int))
+
 
 
