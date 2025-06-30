@@ -152,40 +152,40 @@ with tab2:
   from datetime import datetime
 
   # Connect to SQLite database (it will create the file if it doesn't exist)
-  conn = sqlite3.connect('/content/plot.db')
-  cursor = conn.cursor()
+  #conn = sqlite3.connect('/content/plot.db')
+  #cursor = conn.cursor()
 
   # Create a table for storing plot data
-  cursor.execute('''
-  CREATE TABLE IF NOT EXISTS plot_data (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      plot_title TEXT,
-      x_values TEXT,
-      y_values TEXT,
-      source_url TEXT,
-      created_at TIMESTAMP
-  )
-  ''')
+  #cursor.execute('''
+  #CREATE TABLE IF NOT EXISTS plot_data (
+  #    id INTEGER PRIMARY KEY AUTOINCREMENT,
+  #    plot_title TEXT,
+  #    x_values TEXT,
+  #    y_values TEXT,
+  #    source_url TEXT,
+  #    created_at TIMESTAMP
+  #)
+  #''')
 
   # Commit changes to the database
-  conn.commit()
+  #conn.commit()
 
-  def store_plot_data(values_dict, keys, title, source_url):
-    # Convert values_dict (y-values) and keys (x-values) to strings
-    y_values = str(values_dict)
-    x_values = str(keys)
+  #def store_plot_data(values_dict, keys, title, source_url):
+  #  # Convert values_dict (y-values) and keys (x-values) to strings
+  #  y_values = str(values_dict)
+  #  x_values = str(keys)
 
     # Get the current timestamp
-    created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+   # created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     # Insert data into the database
-    cursor.execute('''
-    INSERT INTO plot_data (plot_title, x_values, y_values, source_url, created_at)
-    VALUES (?, ?, ?, ?, ?)
-    ''', (title, x_values, y_values, source_url, created_at))
+    #cursor.execute('''
+    #INSERT INTO plot_data (plot_title, x_values, y_values, source_url, created_at)
+    #VALUES (?, ?, ?, ?, ?)
+    #''', (title, x_values, y_values, source_url, created_at))
 
     # Commit the changes
-    conn.commit()
+    #conn.commit()
 
   def create_bki_plot(values_dict, keys_kv, colors, title, source_url, underrubrik, bredd, source, rader_data, y_axis_label=None, index=False, bki=False, skip_ticks=False):
       """
@@ -201,7 +201,7 @@ with tab2:
       :param bredd: Width of the plot.
       :param source: Source text for the data reference.
       """
-      store_plot_data(values_dict, keys_kv, title, source_url)
+      #store_plot_data(values_dict, keys_kv, title, source_url)
       # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
 
