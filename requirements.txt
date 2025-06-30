@@ -2,9 +2,9 @@ streamlit
 openai
 bs4
 prettytable
-plotly
+kaleido<0.3.0
+plotly<5.21.0
 matplotlib
-kaleido
 pyxlsb
 xlsxwriter
 groq
