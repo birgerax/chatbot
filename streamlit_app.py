@@ -514,7 +514,7 @@ with tab2:
           global download_counter_excel  # Use the global counter variable
 
           # Create an Excel file from the DataFrame
-          df_xlsx = to_excel(df.iloc[:, 3:])
+          df_xlsx = to_excel(df.iloc[:, 1:])
 
           # Add a download button for the Excel file with a unique key
           col2.download_button(
@@ -5209,6 +5209,10 @@ with tab7:
         0
     )
 
+    st.header("Uppräknade värden:", divider=True)
+    st.write("https://www.scb.se/hitta-statistik/statistik-efter-amne/boende-bebyggelse-och-mark/byggande-och-ombyggnad/bygglov-nybyggnad-och-ombyggnad/pong/tabell-och-diagram/nybyggnad/paborjade-nybyggda-bostadslagenheter/")
+    st.write("https://www.scb.se/hitta-statistik/statistik-efter-amne/boende-bebyggelse-och-mark/byggande-och-ombyggnad/bygglov-nybyggnad-och-ombyggnad/pong/tabell-och-diagram/nybyggnad/nybyggnad-av-bostader-oversiktstabell-preliminara-siffror/")
+    
   #st.header("Hämta", divider=True)
   #col1, col2, col3 = st.columns(3)
   #df_xlsx = to_excel(df)
