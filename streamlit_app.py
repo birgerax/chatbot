@@ -201,7 +201,7 @@ with tab2:
       :param bredd: Width of the plot.
       :param source: Source text for the data reference.
       """
-      #store_plot_data(values_dict, keys_kv, title, source_url)
+      store_plot_data(values_dict, keys_kv, title, source_url)
       # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
 
@@ -241,6 +241,9 @@ with tab2:
       # Slice the DataFrame to select the last 45 rows
       old_df = df
       df = df.iloc[rader_data:]
+      
+      # Reset index for the sliced DataFrame to ensure proper indexing
+      df = df.reset_index(drop=True)
 
       # Create traces using DataFrame columns
       data_bki_tot = []
@@ -316,18 +319,19 @@ with tab2:
 
       # Check if data is quarterly or monthly
       if 'K' in df['Time'].iloc[0]:  # Quarterly data
-          # Extract all 'K1' entries and their positions
+          # Extract all 'K1' entries and their positions (now using reset index)
           tick_positions_all = [i for i, quarter in enumerate(df['Quarter']) if quarter == 'K1']
           tick_labels_all = [df['Year'].iloc[i] for i in tick_positions_all]
 
       elif 'M' in df['Time'].iloc[0]:  # Monthly data
-          # Extract all '01' entries and their positions
+          # Extract all '01' entries and their positions (now using reset index)
           tick_positions_all = [i for i, month in enumerate(df['Month']) if month == '01']
           tick_labels_all = [df['Year'].iloc[i] for i in tick_positions_all]
 
       else:  # Annual data (assumes entries are labeled with each year)
-          tick_positions_all = df['Time'].tolist() # All positions
-          tick_labels_all = tick_positions_all
+          # For yearly data, create positions based on the sliced dataframe
+          tick_positions_all = list(range(len(df)))
+          tick_labels_all = df['Time'].tolist()
 
       # Calculate step size to limit ticks to a maximum of 10
       step_size = max(1, len(tick_positions_all) // 8)
@@ -341,10 +345,15 @@ with tab2:
           final_tick_positions = tick_positions_all[::step_size]
           final_tick_labels = tick_labels_all[::step_size]
 
-      # Calculate dynamic y-axis range
-      # Determine the minimum and maximum values
-      y_min = min(min(values) for values in values_dict.values())
-      y_max = max(max(values) for values in values_dict.values())
+      # Calculate dynamic y-axis range based on ONLY the visible data
+      # Get all values from the sliced dataframe
+      visible_values = []
+      for label in values_dict.keys():
+          visible_values.extend(df[label].dropna().tolist())
+      
+      # Determine the minimum and maximum values from visible data only
+      y_min = min(visible_values) if visible_values else 0
+      y_max = max(visible_values) if visible_values else 100
 
       # Add margin above the maximum value
       y_axis_margin = 0.05  # 5% margin above
@@ -381,6 +390,7 @@ with tab2:
               tickfont=dict(size=14),
               ticks='outside',
               ticklen=5,
+              range=[0, len(df) - 1],  # Explicitly set x-axis range to match visible data
           ),
           yaxis=dict(
               range=y_axis_range,       # Use dynamically calculated range
@@ -413,37 +423,37 @@ with tab2:
       layout_bki_tot['title']['y'] = 0.89
 
       def calculate_title_x_position(title):
-        """
-        Dynamically calculate the x position for the title based on its length.
+          """
+          Dynamically calculate the x position for the title based on its length.
 
-        :param title: The title text of the plot.
-        :return: A float value for the x position.
-        """
-        base_x = 0.00  # Default left alignment for very short titles
-        max_x = 0.06    # Center alignment for extremely long titles
-        max_length = 100  # Title length beyond which the x position doesn't change
+          :param title: The title text of the plot.
+          :return: A float value for the x position.
+          """
+          base_x = 0.00  # Default left alignment for very short titles
+          max_x = 0.06    # Center alignment for extremely long titles
+          max_length = 100  # Title length beyond which the x position doesn't change
 
-        # Length of the title
-        title_length = len(title)
+          # Length of the title
+          title_length = len(title)
 
-        # Apply a polynomial scaling for more fine-tuned adjustments
-        # The formula ensures a smooth curve from base_x to max_x
-        scaled_length = min(title_length / max_length, 1)  # Normalize length to [0, 1]
-        x_position = base_x + (max_x - base_x) * (scaled_length ** 1.5)  # Quadratic scaling
+          # Apply a polynomial scaling for more fine-tuned adjustments
+          # The formula ensures a smooth curve from base_x to max_x
+          scaled_length = min(title_length / max_length, 1)  # Normalize length to [0, 1]
+          x_position = base_x + (max_x - base_x) * (scaled_length ** 1.5)  # Quadratic scaling
 
-        return x_position
+          return x_position
 
       layout_bki_tot['title']['x'] = calculate_title_x_position(title)
 
       config = {
-        'toImageButtonOptions': {
-            'format': 'png',  # Export format
-            'width': None,
-            'height': None,
-            'filename': 'high_quality_plot',  # Filename for download
-            'scale': 2  # Increase scale for higher resolution (scale=2 means 2x the default resolution)
-        },
-        'displaylogo': False  # Optionally remove the Plotly logo from the toolbar
+          'toImageButtonOptions': {
+              'format': 'png',  # Export format
+              'width': None,
+              'height': None,
+              'filename': 'high_quality_plot',  # Filename for download
+              'scale': 2  # Increase scale for higher resolution (scale=2 means 2x the default resolution)
+          },
+          'displaylogo': False  # Optionally remove the Plotly logo from the toolbar
       }
 
       # Plot the figure with the custom data and layout
@@ -479,7 +489,7 @@ with tab2:
           text = f'Senaste utfall: {last_datapoint_time}' if underrubrik == "Senaste utfall" else underrubrik,
           font=dict(size=14, color='black'),  # Set font size and color
           showarrow=False,
-  )
+      )
 
       layout_bki_tot['annotations'] = [new_annotation, data_source_annotation]
       layout_bki_tot['title']['x'] = 0.1
