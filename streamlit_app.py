@@ -201,7 +201,7 @@ with tab2:
       :param bredd: Width of the plot.
       :param source: Source text for the data reference.
       """
-      store_plot_data(values_dict, keys_kv, title, source_url)
+      #store_plot_data(values_dict, keys_kv, title, source_url)
       # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
 
