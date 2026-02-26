@@ -187,213 +187,138 @@ with tab2:
     # Commit the changes
     #conn.commit()
 
+  import streamlit as st
+  import plotly.graph_objects as go
+  import pandas as pd
+  from io import StringIO
+
+  FIG_HEIGHT = 500  # Standardhöjd – justera efter behov
+
   def create_bki_plot(values_dict, keys_kv, colors, title, source_url, underrubrik, bredd, source, rader_data, y_axis_label=None, index=False, bki=False, skip_ticks=False):
-      """
-      Creates a dynamic line plot based on multiple datasets with time on the x-axis.
-
-      :param values_dict: A dictionary where keys are line labels and values are lists of values to plot.
-                          Example: {'Gruppbyggda småhus': [values_sma], 'Flerbostadshus': [values_fle], ...}
-      :param keys_kv: List of time labels (e.g., ['2020-01', '2020-02'] for monthly or ['2020K1', '2020K2'] for quarterly).
-      :param colors: List of colors for each line in the plot.
-      :param title: Title of the plot.
-      :param source_url: The source URL to display at the bottom of the plot.
-      :param underrubrik: Subtitle or additional information below the title.
-      :param bredd: Width of the plot.
-      :param source: Source text for the data reference.
-      """
-      #store_plot_data(values_dict, keys_kv, title, source_url)
-      # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
-
-      # Trim keys_kv to match the minimum length
       keys_kv_trimmed = keys_kv[:min_length]
 
-      # Create a DataFrame to organize the data with time as the index
       df = pd.DataFrame({'Time': keys_kv_trimmed})
 
-      # Check if the time labels are monthly or quarterly
+      # --- Tidsformatering ---
       if 'M' in df['Time'].iloc[0]:
-          # Monthly data format ('YYYY-MM')
           month_map = {
               '01': 'jan', '02': 'feb', '03': 'mar', '04': 'apr', '05': 'maj', '06': 'jun',
               '07': 'jul', '08': 'aug', '09': 'sep', '10': 'okt', '11': 'nov', '12': 'dec'
           }
-          df['Month'] = df['Time'].str[5:7]  # Extract month (01, 02, etc.)
-          df['Year'] = df['Time'].str[:4]  # Extract year (YYYY)
-          df['Tid'] = df['Month'].map(month_map) + '-' + df['Year']  # Create display label like 'jan-2021'
+          df['Month'] = df['Time'].str[5:7]
+          df['Year']  = df['Time'].str[:4]
+          df['Tid']   = df['Month'].map(month_map) + '-' + df['Year']
 
       elif 'K' in df['Time'].iloc[0]:
-          # Quarterly data format ('YYYYK1', 'YYYYK2', etc.)
-          quarter_map = {
-              'K1': 'Q1', 'K2': 'Q2', 'K3': 'Q3', 'K4': 'Q4'
-          }
-          df['Quarter'] = df['Time'].str[4:6]  # Extract quarter (K1, K2, etc.)
-          df['Year'] = df['Time'].str[:4]  # Extract year (YYYY)
-          df['Tid'] = df['Quarter'].map(quarter_map) + '-' + df['Year']  # Create display label like 'Q1-2021'
+          quarter_map = {'K1': 'Q1', 'K2': 'Q2', 'K3': 'Q3', 'K4': 'Q4'}
+          df['Quarter'] = df['Time'].str[4:6]
+          df['Year']    = df['Time'].str[:4]
+          df['Tid']     = df['Quarter'].map(quarter_map) + '-' + df['Year']
 
-      else:  # Yearly data format ('YYYY')
+      else:
           df['Tid'] = df['Time']
 
-      # Add each line's data to the DataFrame
       for label, values in values_dict.items():
           df[label] = values[:min_length]
 
-      # Slice the DataFrame to select the last 45 rows
       old_df = df
-      df = df.iloc[rader_data:]
-      
-      # Reset index for the sliced DataFrame to ensure proper indexing
-      df = df.reset_index(drop=True)
+      df = df.iloc[rader_data:].reset_index(drop=True)
 
-      # Create traces using DataFrame columns
+      # --- Traces ---
       data_bki_tot = []
-      for i, (label, column) in enumerate(values_dict.items()):
-          # Check if it's the first line, "Total"
-          line_style = dict(
-              color=colors[i],
-              width=2.6,
-              dash='dash' if label == "Total" else None  # Make the "Total" line dashed
-          )
-
+      for i, (label, _) in enumerate(values_dict.items()):
           trace = go.Scatter(
-              x=df['Tid'],  # Use the formatted display labels for x-axis
+              x=df['Tid'],
               y=df[label],
               name=label,
-              hovertext=[f"Tidpunkt: {time}<br>{label}: {value}" for time, value in zip(df['Tid'], df[label])],
+              hovertext=[f"Tidpunkt: {t}<br>{label}: {v}" for t, v in zip(df['Tid'], df[label])],
               hoverinfo='text',
               mode='lines',
-              line=line_style,  # Apply the line style
-              opacity=1,  # Set opacity to 1 for solid colors
+              line=dict(
+                  color=colors[i],
+                  width=2.6,
+                  dash='dash' if label == "Total" else None
+              ),
+              opacity=1,
               selected=dict(marker=dict(color='red')),
               unselected=dict(marker=dict(opacity=0.1))
           )
           data_bki_tot.append(trace)
 
-      base_x_position = 0.16  # Starting x position
-      shift_threshold = 24  # Threshold for when to start increasing the x position gradually
-      scale_factor = 0.03  # How much to move the x position for each letter after the threshold
-      gradual_factor = 0.01  # Gradual factor to increase x shift after crossing 30 characters
-
-      # Calculate the length of the underrubrik
-      underrubrik_length = len(underrubrik)
-
-      # If underrubrik length is above the threshold, gradually increase the x position
-      if underrubrik_length > shift_threshold:
-          # Shift starts gradually increasing after the threshold
-          extra_shift = (underrubrik_length - shift_threshold) * gradual_factor
-          x_position = base_x_position + extra_shift
+      # --- Tick-positioner ---
+      if 'K' in df['Time'].iloc[0]:
+          tick_positions_all = [i for i, q in enumerate(df['Quarter']) if q == 'K1']
+          tick_labels_all    = [df['Year'].iloc[i] for i in tick_positions_all]
+      elif 'M' in df['Time'].iloc[0]:
+          tick_positions_all = [i for i, m in enumerate(df['Month']) if m == '01']
+          tick_labels_all    = [df['Year'].iloc[i] for i in tick_positions_all]
       else:
-          # No shift for underrubrik lengths below the threshold
-          x_position = base_x_position
+          tick_positions_all = df['Time'].tolist()
+          tick_labels_all    = df['Time'].tolist()
 
-      # Add subtopic for the time of the last datapoint
-      last_datapoint_time = df['Tid'].iloc[-1]
-      last_datapoint_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=x_position,
-          y=1.03,
-          xanchor='center',
-          yanchor='bottom',
-          text=f'Senaste utfall: {last_datapoint_time}' if underrubrik == "Senaste utfall" else underrubrik,
-          font=dict(size=14, color='black'),  # Set font size and color
-          showarrow=False,
-      )
-
-      # Add annotation for the data source below the frame
-      data_source_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=0.15,
-          y=-0.20,
-          xanchor='center',
-          yanchor='top',
-          text=f'Källa: <a href="{source_url}">{source}</a>',
-          font=dict(size=12, color='black'),  # Set font size and color
-          showarrow=False,
-      )
-
-      # Initialize lists for tick positions and labels
-      final_tick_positions = []
-      final_tick_labels = []
-
-      # Check if data is quarterly or monthly
-      if 'K' in df['Time'].iloc[0]:  # Quarterly data
-          # Extract all 'K1' entries and their positions (now using reset index)
-          tick_positions_all = [i for i, quarter in enumerate(df['Quarter']) if quarter == 'K1']
-          tick_labels_all = [df['Year'].iloc[i] for i in tick_positions_all]
-
-      elif 'M' in df['Time'].iloc[0]:  # Monthly data
-          # Extract all '01' entries and their positions (now using reset index)
-          tick_positions_all = [i for i, month in enumerate(df['Month']) if month == '01']
-          tick_labels_all = [df['Year'].iloc[i] for i in tick_positions_all]
-
-      else:  # Annual data (assumes entries are labeled with each year)
-          # For yearly data, create positions based on the sliced dataframe
-          tick_positions_all = list(range(len(df)))
-          tick_labels_all = df['Time'].tolist()
-
-      # Calculate step size to limit ticks to a maximum of 10
       step_size = max(1, len(tick_positions_all) // 8)
+      step = 2 if skip_ticks else step_size
+      final_tick_positions = tick_positions_all[::step]
+      final_tick_labels    = tick_labels_all[::step]
 
-      if skip_ticks:
-          # Skip every second tick
-          final_tick_positions = tick_positions_all[::2]
-          final_tick_labels = tick_labels_all[::2]
-      else:
-          # Use the default behavior (all ticks or step size)
-          final_tick_positions = tick_positions_all[::step_size]
-          final_tick_labels = tick_labels_all[::step_size]
-
-      # Calculate dynamic y-axis range based on ONLY the visible data
-      # Get all values from the sliced dataframe
-      visible_values = []
-      for label in values_dict.keys():
-          visible_values.extend(df[label].dropna().tolist())
-      
-      # Determine the minimum and maximum values from visible data only
+      # --- Y-axelns intervall ---
+      visible_values = [v for label in values_dict for v in df[label].dropna()]
       y_min = min(visible_values) if visible_values else 0
       y_max = max(visible_values) if visible_values else 100
+      y_margin = (y_max - y_min) * 0.05
 
-      # Add margin above the maximum value
-      y_axis_margin = 0.05  # 5% margin above
-      y_max_with_margin = y_max + (y_max - y_min) * y_axis_margin
-
-      # Adjust y_min and range based on whether it's an index chart
       if index:
-          y_min_with_margin = y_min - 3
-          # y_max with a 5% margin above the actual maximum value
-          y_axis_margin = 0.05
-          y_max_with_margin = y_max + (y_max - y_min) * y_axis_margin
-          y_axis_range = [y_min_with_margin, y_max_with_margin]
-      # Add a check for the 'bki:' condition
-      elif bki:  # Replace 'your_condition_variable' with the actual variable checking the condition
-          y_min_adjusted = 97  # Explicitly set y_min to 97 for this condition
-          y_axis_range = [y_min_adjusted, y_max_with_margin]
-
+          y_axis_range = [y_min - 3, y_max + y_margin]
+      elif bki:
+          y_axis_range = [97, y_max + y_margin]
       else:
-          # Regular chart range, ensuring the y_min is at least 0
-          y_axis_range = [min(0, y_min), y_max_with_margin]
+          y_axis_range = [min(0, y_min), y_max + y_margin]
 
-      # Define layout with filtered tick positions and labels
-      layout_bki_tot = go.Layout(
-          title=title,
-          font=dict(size=18),
+      # --- Titel & underrubrik ---
+      last_datapoint_time = df['Tid'].iloc[-1]
+      subtitle_text = (
+          f'Senaste utfall: {last_datapoint_time}'
+          if underrubrik == "Senaste utfall"
+          else underrubrik
+      )
+
+      # Titel + underrubrik i samma textsträng med HTML.
+      # Underrubriken hamnar alltid direkt under titeln, oavsett figurbredd.
+      combined_title = (
+          f'{title}<br>'
+          f'<span style="font-size:14px; color:#444; font-weight:normal;">'
+          f'{subtitle_text}</span>'
+      )
+
+      # --- Layout ---
+      layout = go.Layout(
+          title=dict(
+              text=combined_title,
+              font=dict(size=18),
+              x=0.07,
+              xanchor='left',
+              y=0.84,
+              yanchor='top',
+          ),
+          height=FIG_HEIGHT,
+          font=dict(size=14),
           xaxis=dict(
-              tickvals=final_tick_positions,  # Positions for major ticks
-              ticktext=final_tick_labels,  # Only show the year at selected tick positions
-              tickangle=0,  # Keep x-axis tick labels horizontal
+              tickvals=final_tick_positions,
+              ticktext=final_tick_labels,
+              tickangle=0,
               showline=True,
               linewidth=1,
               linecolor='black',
               mirror=True,
               tickfont=dict(size=14),
+              tickcolor="#646464",
               ticks='outside',
               ticklen=5,
-              range=[0, len(df) - 1],  # Explicitly set x-axis range to match visible data
+              **({'range': [0, len(df) - 1]} if ('K' in df['Time'].iloc[0] or 'M' in df['Time'].iloc[0]) else {}),
           ),
           yaxis=dict(
-              range=y_axis_range,       # Use dynamically calculated range
+              range=y_axis_range,
               zeroline=(y_min <= 0 <= y_max),
               showline=True,
               linewidth=1,
@@ -404,144 +329,76 @@ with tab2:
           ),
           plot_bgcolor='white',
           yaxis_gridcolor='lightgray',
-          annotations=[last_datapoint_annotation, data_source_annotation],
           legend=dict(
               x=1.05,
               y=1,
               traceorder='normal',
-              font=dict(
-                  family="Monaco, monospace",
-                  size=12,
-                  color="black"
-              )
+              font=dict(family="Monaco, monospace", size=12, color="black")
           ),
-          margin=dict(
-              r=80,  # Ensure right margin space for frame
-          )
+          margin=dict(t=120, b=70, r=80, l=60),
+          annotations=[
+              dict(
+                  xref='paper', yref='paper',
+                  x=0.0, y=-0.12,
+                  xanchor='left', yanchor='top',
+                  text=f'Källa: <a href="{source_url}">{source}</a>',
+                  font=dict(size=12, color='black'),
+                  showarrow=False,
+              ),
+          ],
       )
-
-      layout_bki_tot['title']['y'] = 0.89
-
-      def calculate_title_x_position(title):
-          """
-          Dynamically calculate the x position for the title based on its length.
-
-          :param title: The title text of the plot.
-          :return: A float value for the x position.
-          """
-          base_x = 0.00  # Default left alignment for very short titles
-          max_x = 0.06    # Center alignment for extremely long titles
-          max_length = 100  # Title length beyond which the x position doesn't change
-
-          # Length of the title
-          title_length = len(title)
-
-          # Apply a polynomial scaling for more fine-tuned adjustments
-          # The formula ensures a smooth curve from base_x to max_x
-          scaled_length = min(title_length / max_length, 1)  # Normalize length to [0, 1]
-          x_position = base_x + (max_x - base_x) * (scaled_length ** 1.5)  # Quadratic scaling
-
-          return x_position
-
-      layout_bki_tot['title']['x'] = calculate_title_x_position(title)
 
       config = {
           'toImageButtonOptions': {
-              'format': 'png',  # Export format
+              'format': 'png',
               'width': None,
               'height': None,
-              'filename': 'high_quality_plot',  # Filename for download
-              'scale': 2  # Increase scale for higher resolution (scale=2 means 2x the default resolution)
+              'filename': 'high_quality_plot',
+              'scale': 2
           },
-          'displaylogo': False  # Optionally remove the Plotly logo from the toolbar
+          'displaylogo': False
       }
 
-      # Plot the figure with the custom data and layout
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot)
-      fig.update_layout(width=bredd)  # Set the width of the figure
-      st.plotly_chart(fig, config=config)  # Render the plot
+      fig = go.Figure(data=data_bki_tot, layout=layout)
+      fig.update_layout(width=bredd)
 
-      # Define the base x position and scaling factors
-      base_x_position = 0.24  # Starting x position
-      shift_threshold = 26  # Threshold for when to start increasing the x position gradually
-      scale_factor = 0.03  # How much to move the x position for each letter after the threshold
-      gradual_factor = 0.01  # Gradual factor to increase x shift after crossing 30 characters
+      # --- Visa figur ---
+      st.plotly_chart(fig, config=config)
 
-      # Calculate the length of the underrubrik
-      underrubrik_length = len(underrubrik)
-
-      # If underrubrik length is above the threshold, gradually increase the x position
-      if underrubrik_length > shift_threshold:
-          # Shift starts gradually increasing after the threshold
-          extra_shift = (underrubrik_length - shift_threshold) * gradual_factor
-          x_position = base_x_position + extra_shift
-      else:
-          # No shift for underrubrik lengths below the threshold
-          x_position = base_x_position
-
-      new_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=x_position,
-          y=1,
-          xanchor='center',
-          yanchor='bottom',
-          text = f'Senaste utfall: {last_datapoint_time}' if underrubrik == "Senaste utfall" else underrubrik,
-          font=dict(size=14, color='black'),  # Set font size and color
-          showarrow=False,
-      )
-
-      layout_bki_tot['annotations'] = [new_annotation, data_source_annotation]
-      layout_bki_tot['title']['x'] = 0.1
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=bredd+100)
-
-      @st.cache_data
-      def save_figure_as_image(fig, format='png'):
-          # Save the figure to a BytesIO object
-          img_bytes = BytesIO()
-          fig.write_image(img_bytes, format=format, scale=2)  # Increase scale for higher resolution
-          img_bytes.seek(0)
-          return img_bytes
+      # --- Nedladdningsknappar ---
+      def save_as_html(fig):
+          buf = StringIO()
+          fig.write_html(buf, include_plotlyjs='cdn', config=config)
+          return buf.getvalue().encode('utf-8')
 
       def display_download_button(fig):
-          global download_counter  # Use the global counter variable
-
-          # Save the figure as a high-resolution image (PNG format by default)
-          image_data = save_figure_as_image(fig, format='png')
-
-          # Add a download button for the figure image with a unique key
+          global download_counter
           col1.download_button(
               label="📈 Hämta figur",
-              data=image_data,
-              file_name="figure.png",
-              mime="image/png",
-              key=f"download_button_{download_counter}"  # Unique key based on the counter
+              data=save_as_html(fig),
+              file_name="figure.html",
+              mime="text/html",
+              key=f"download_button_{download_counter}"
           )
-
-          download_counter += 1  # Increment the counter for the next call
+          download_counter += 1
 
       def display_download_button_excel(df):
-          global download_counter_excel  # Use the global counter variable
-
-          # Create an Excel file from the DataFrame
-          df_xlsx = to_excel(df.iloc[:, 1:])
-
-          # Add a download button for the Excel file with a unique key
+          global download_counter_excel
           col2.download_button(
               label='📥 Hämta data',
-              data=df_xlsx,
+              data=to_excel(df.iloc[:, 1:]),
               file_name='data.xlsx',
               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"  # Unique key based on the counter
+              key=f"download_button_excel_{download_counter_excel}"
           )
-
-          download_counter_excel += 1  # Increment the counter for the next call
+          download_counter_excel += 1
 
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
       display_download_button(fig)
       display_download_button_excel(old_df)
       return df
+
 
   import requests
   import json
@@ -1546,94 +1403,63 @@ with tab4:
   col1.metric(f"Flerbostadshus" , latest_formatted_value, formatted_change)
   col2.metric(f"Gruppbyggda småhus" , latest_formatted_value_sma, formatted_change_sma)
 
+  from io import StringIO
+
   def create_bki_yoy_plot(values_dict, keys_kv, colors, title, source_url, source):
-      """
-      Creates a dynamic line plot based on multiple datasets with year-over-year (YoY) percentage change.
-
-      :param values_dict: A dictionary where keys are line labels and values are lists of values to plot.
-                          Example: {'Gruppbyggda småhus': [values_sma], 'Flerbostadshus': [values_fle], ...}
-      :param keys_kv: List of time labels (e.g., ['2020-01', '2020-02']).
-      :param colors: List of colors for each line in the plot.
-      :param title: Title of the plot.
-      :param source_url: The source URL to display at the bottom of the plot.
-      """
-      # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
-
-      # Trim keys_kv to match the minimum length
       keys_kv_trimmed = keys_kv[:min_length]
 
-      # Create a DataFrame to organize the data with time as the index
       df = pd.DataFrame({'Time': keys_kv_trimmed})
 
-      # Identify monthly data and format for display
       month_map = {
           '01': 'jan', '02': 'feb', '03': 'mar', '04': 'apr', '05': 'maj', '06': 'jun',
           '07': 'jul', '08': 'aug', '09': 'sep', '10': 'okt', '11': 'nov', '12': 'dec'
       }
-      df['Month'] = df['Time'].str[5:7]  # Extract month (e.g., '01')
-      df['Year'] = df['Time'].str[:4]  # Extract year (e.g., '2020')
-      df['Tid'] = df['Month'].map(month_map) + '-' + df['Year']  # Create display labels (e.g., 'jan-2020')
+      df['Month'] = df['Time'].str[5:7]
+      df['Year']  = df['Time'].str[:4]
+      df['Tid']   = df['Month'].map(month_map) + '-' + df['Year']
 
-      # Add each line's data to the DataFrame
       for label, values in values_dict.items():
           df[label] = values[:min_length]
 
-      # Calculate year-over-year percentage change (YoY) for each series
       for label in values_dict.keys():
           df[f'{label} YoY'] = df[label].pct_change(periods=12) * 100
 
-      # Slice the DataFrame to select the last 60 rows (or adjust as needed)
       df = df.iloc[72:]
 
-      # Initialize tick positions and labels for the x-axis
-      tick_positions_all = [i for i, month in enumerate(df['Month']) if month == '01']  # Only January positions
-      tick_labels_all = [df['Year'].iloc[i] for i in tick_positions_all]  # Use the corresponding year for labels
-
-      # Limit the number of ticks to approximately 10
-      step_size = max(1, len(tick_positions_all) // 10)
+      tick_positions_all = [i for i, month in enumerate(df['Month']) if month == '01']
+      tick_labels_all    = [df['Year'].iloc[i] for i in tick_positions_all]
+      step_size          = max(1, len(tick_positions_all) // 10)
       final_tick_positions = tick_positions_all[::step_size]
-      final_tick_labels = tick_labels_all[::step_size]
+      final_tick_labels    = tick_labels_all[::step_size]
 
-      # Create the traces
       data_bki_tot = []
       for idx, (label, _) in enumerate(values_dict.items()):
           data_bki_tot.append(go.Scatter(
-              x=df['Tid'], y=df[f'{label} YoY'],
-              mode='lines', name=label,
+              x=df['Tid'],
+              y=df[f'{label} YoY'],
+              mode='lines',
+              name=label,
               line=dict(color=colors[idx], width=2)
           ))
 
-      # Last data point annotation
-      last_datapoint_time = df['Tid'].iloc[-1]
-      last_datapoint_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=0.19,
-          y=1.03,
-          xanchor='center',
-          yanchor='bottom',
-          text=f'Årlig procentuell förändring',
-          font=dict(size=14, color='black'),
-          showarrow=False,
+      # Titel + underrubrik ihopslagen precis som i create_bki_plot
+      combined_title = (
+          f'{title}<br>'
+          f'<span style="font-size:14px; color:#444; font-weight:normal;">'
+          f'Årlig procentuell förändring</span>'
       )
 
-      # Source annotation
-      data_source_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=0.15,
-          y=-0.20,
-          xanchor='center',
-          yanchor='top',
-          text=f'Källa: <a href="{source_url}">{source}</a>',
-          font=dict(size=12, color='black'),
-          showarrow=False,
-      )
-
-      # Define layout
-      layout_bki_tot = go.Layout(
-          title=title,
+      layout = go.Layout(
+          title=dict(
+              text=combined_title,
+              font=dict(size=18),
+              x=0.07,
+              xanchor='left',
+              y=0.84,
+              yanchor='top',
+          ),
+          height=500,
           font=dict(size=18),
           xaxis=dict(
               tickvals=final_tick_positions,
@@ -1645,6 +1471,7 @@ with tab4:
               linecolor='black',
               mirror=True,
               tickfont=dict(size=14),
+              tickcolor="#646464",
               ticks='outside',
               ticklen=5,
           ),
@@ -1658,7 +1485,6 @@ with tab4:
           ),
           plot_bgcolor='white',
           yaxis_gridcolor='lightgray',
-          annotations=[last_datapoint_annotation, data_source_annotation],
           legend=dict(
               x=1.05,
               y=1,
@@ -1666,12 +1492,19 @@ with tab4:
               font=dict(family="Monaco, monospace", size=12, color="black"),
               tracegroupgap=50,
           ),
+          margin=dict(t=120, b=70, r=80, l=60),
+          annotations=[
+              dict(
+                  xref='paper', yref='paper',
+                  x=0.0, y=-0.15,
+                  xanchor='left', yanchor='top',
+                  text=f'Källa: <a href="{source_url}">{source}</a>',
+                  font=dict(size=12, color='black'),
+                  showarrow=False,
+              ),
+          ],
       )
 
-      # Adjust the title position
-      layout_bki_tot['title']['y'] = 0.89
-
-      # Configure the toolbar
       config = {
           'toImageButtonOptions': {
               'format': 'png',
@@ -1681,72 +1514,43 @@ with tab4:
           'displaylogo': False
       }
 
-      # Create the figure
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=600)
+      fig = go.Figure(data=data_bki_tot, layout=layout)
+      fig.update_layout(width=600)
       st.plotly_chart(fig, config=config)
 
-      new_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=0.26,
-          y=1,
-          xanchor='center',
-          yanchor='bottom',
-          text=f'Årlig procentuell förändring',
-          font=dict(size=14, color='black'),  # Set font size and color
-          showarrow=False,
-  )
-
-      layout_bki_tot['annotations'] = [new_annotation, data_source_annotation]
-      layout_bki_tot['title']['x'] = 0.1
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=700)
-
-      #@st.cache_data
-      def save_figure_as_image(fig, format='png'):
-          # Save the figure to a BytesIO object
-          img_bytes = BytesIO()
-          fig.write_image(img_bytes, format=format, scale=2)  # Increase scale for higher resolution
-          img_bytes.seek(0)
-          return img_bytes
+      # --- Nedladdningsknappar ---
+      def save_as_html(fig):
+          buf = StringIO()
+          fig.write_html(buf, include_plotlyjs='cdn', config=config)
+          return buf.getvalue().encode('utf-8')
 
       def display_download_button(fig):
-          global download_counter  # Use the global counter variable
-
-          # Save the figure as a high-resolution image (PNG format by default)
-          image_data = save_figure_as_image(fig, format='png')
-
-          # Add a download button for the figure image with a unique key
+          global download_counter
           col1.download_button(
               label="📈 Hämta figur",
-              data=image_data,
-              file_name="figure.png",
-              mime="image/png",
-              key=f"download_button_{download_counter}"  # Unique key based on the counter
+              data=save_as_html(fig),
+              file_name="figure.html",
+              mime="text/html",
+              key=f"download_button_{download_counter}"
           )
-
-          download_counter += 1  # Increment the counter for the next call
+          download_counter += 1
 
       def display_download_button_excel(df):
-          global download_counter_excel  # Use the global counter variable
-
-          # Create an Excel file from the DataFrame
-          df_xlsx = to_excel(df.iloc[:, :])
-
-          # Add a download button for the Excel file with a unique key
+          global download_counter_excel
           col2.download_button(
               label='📥 Hämta data',
-              data=df_xlsx,
+              data=to_excel(df.iloc[:, :]),
               file_name='data.xlsx',
               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"  # Unique key based on the counter
+              key=f"download_button_excel_{download_counter_excel}"
           )
-
-          download_counter_excel += 1  # Increment the counter for the next call
+          download_counter_excel += 1
 
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
       display_download_button(fig)
       display_download_button_excel(df)
+
 
   keys_kv = [entry['key'][2] for entry in response_json['data']]
   values_fle = [float(entry['values'][0]) for entry in response_json['data'] if entry['key'][0] == 'FLERBO' and entry['key'][1] == 'TOTAL']
@@ -3243,7 +3047,9 @@ with tab6:
             "2024K2",
             "2024K3",
             "2024K4",
-            "2025K1"
+            "2025K1",
+            "2025K2",
+            "2025K3"
           ]
         }
       }
@@ -3330,6 +3136,7 @@ with tab6:
           linecolor='black',  # Set x-axis line color
           mirror=True,  # Show x-axis line on the top and right side
           tickfont=dict(size=14),  # Set font size for x-axis ticks
+          tickcolor="#646464",
           ticks='outside',  # Place ticks outside the plot
           ticklen=5,  # Length of the ticks
       ),
@@ -3522,7 +3329,9 @@ with tab6:
             "2024K2",
             "2024K3",
             "2024K4",
-            "2025K1"
+            "2025K1",
+            "2025K2",
+            "2025K3"
           ]
         }
       }
@@ -3605,6 +3414,7 @@ with tab6:
           linecolor='black',  # Set x-axis line color
           mirror=True,  # Show x-axis line on the top and right side
           tickfont=dict(size=14),  # Set font size for x-axis ticks
+          tickcolor="#646464",
           ticks='outside',  # Place ticks outside the plot
           ticklen=5,  # Length of the ticks
       ),
@@ -3805,7 +3615,9 @@ with tab6:
             "2024K2",
             "2024K3",
             "2024K4",
-            "2025K1"
+            "2025K1",
+            "2025K2",
+            "2025K3"
           ]
         }
       }
@@ -3888,6 +3700,7 @@ with tab6:
           linecolor='black',  # Set x-axis line color
           mirror=True,  # Show x-axis line on the top and right side
           tickfont=dict(size=14),  # Set font size for x-axis ticks
+          tickcolor="#646464",
           ticks='outside',  # Place ticks outside the plot
           ticklen=5,  # Length of the ticks
       ),
@@ -4088,7 +3901,9 @@ with tab6:
             "2024K2",
             "2024K3",
             "2024K4",
-            "2025K1"
+            "2025K1",
+            "2025K2",
+            "2025K3"
           ]
         }
       }
@@ -4170,6 +3985,7 @@ with tab6:
           linecolor='black',  # Set x-axis line color
           mirror=True,  # Show x-axis line on the top and right side
           tickfont=dict(size=14),  # Set font size for x-axis ticks
+          tickcolor="#646464",
           ticks='outside',  # Place ticks outside the plot
           ticklen=5,  # Length of the ticks
       ),
@@ -4724,6 +4540,7 @@ with tab7:
             linecolor='black',  # Set x-axis line color
             mirror=True,  # Show x-axis line on the top and right side
             tickfont=dict(size=14),  # Set font size for x-axis ticks
+            tickcolor="#646464",
             ticks='outside',  # Place ticks outside the plot
             ticklen=5,  # Length of the ticks
         ),
@@ -4818,6 +4635,7 @@ with tab7:
             linecolor='black',
             mirror=True,
             tickfont=dict(size=14),
+            tickcolor="#646464",
             ticks='outside',
             ticklen=5,
         ),
@@ -5024,6 +4842,7 @@ with tab7:
                 linecolor='black',
                 mirror=True,
                 tickfont=dict(size=14),
+                tickcolor="#646464",
                 ticks='outside',
                 ticklen=5,
             ),
@@ -5340,39 +5159,22 @@ with tab8:
   import pandas as pd
   import plotly.graph_objects as go
   import eurostat  # Ensure the Eurostat library is installed and imported
+  from io import StringIO
+
   def create_bki_plot_eurostat(values_dict, keys_kv, colors, title, source_url, sub_heading, sub_heading_x):
-      """
-      Creates a dynamic line plot based on multiple datasets with time on the x-axis.
-
-      :param values_dict: A dictionary where keys are line labels and values are lists of values to plot.
-                          Example: {'Gruppbyggda småhus': [values_sma], 'Flerbostadshus': [values_fle], ...}
-      :param keys_kv: List of time labels (e.g., ['2020-Q1', '2020-Q2'] for quarters).
-      :param colors: List of colors for each line in the plot.
-      :param title: Title of the plot.
-      :param source_url: The source URL to display at the bottom of the plot.
-      """
-      # Determine the minimum length among all value lists to avoid mismatches
       min_length = min(len(values) for values in values_dict.values())
-
-      # Trim keys_kv to match the minimum length
       keys_kv_trimmed = keys_kv[:min_length]
 
-      # Create a DataFrame to organize the data with time as the index
       df = pd.DataFrame({'Time': keys_kv_trimmed})
 
-      # Check if the time labels are quarterly
-      if 'Q' in df['Time'].iloc[0]:  # Quarterly data format ('YYYY-Q#')
-          df['Quarter'] = df['Time'].str[5:]  # Extract the quarter part (e.g., 'Q1')
-          df['Year'] = df['Time'].str[:4]  # Extract the year part (e.g., '2021')
+      if 'Q' in df['Time'].iloc[0]:
+          df['Quarter'] = df['Time'].str[5:]
+          df['Year']    = df['Time'].str[:4]
 
-      # Add each line's data to the DataFrame
       for label, values in values_dict.items():
           df[label] = values[:min_length]
 
-      # Slice the DataFrame to select the last 45 rows
-      #df = df.iloc[-45:]
-
-      # Create traces using DataFrame columns
+      # --- Traces ---
       data_bki_tot = []
       for i, (label, values) in enumerate(values_dict.items()):
           trace = go.Scatter(
@@ -5387,56 +5189,42 @@ with tab8:
           )
           data_bki_tot.append(trace)
 
-      # Generate tick labels to show only the year at the start of each new year (i.e., for Q1)
+      # --- Tick-positioner (endast Q1) ---
       final_tick_positions = []
-      final_tick_labels = []
-
-      # Loop through the DataFrame and identify when it's Q1
+      final_tick_labels    = []
       for i, (quarter, year) in enumerate(zip(df['Quarter'], df['Year'])):
-          if quarter == 'Q1':  # Only show the year at the start of each year (Q1)
-              final_tick_positions.append(i)  # Record the index where Q1 appears
-              final_tick_labels.append(year)  # Use the year as the label
+          if quarter == 'Q1':
+              final_tick_positions.append(i)
+              final_tick_labels.append(year)
 
-      # Add subtopic for the time of the last datapoint
-      last_datapoint_time = df['Time'].iloc[-1]
-      last_datapoint_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=sub_heading_x,
-          y=1.03,
-          xanchor='center',
-          yanchor='bottom',
-          text=f'{sub_heading}',
-          font=dict(size=14, color='black'),
-          showarrow=False,
+      # --- Titel + underrubrik ihopslagen ---
+      combined_title = (
+          f'{title}<br>'
+          f'<span style="font-size:14px; color:#444; font-weight:normal;">'
+          f'{sub_heading}</span>'
       )
 
-      # Add annotation for the data source below the frame
-      data_source_annotation = dict(
-          xref='paper',
-          yref='paper',
-          x=0.08,
-          y=-0.15,
-          xanchor='center',
-          yanchor='top',
-          text=f'Källa: <a href="{source_url}">Eurostat</a>',
-          font=dict(size=12, color='black'),
-          showarrow=False,
-      )
-
-      # Layout for final ticks and x-tick formatting
-      layout_bki_tot = go.Layout(
-          title=title,
+      layout = go.Layout(
+          title=dict(
+              text=combined_title,
+              font=dict(size=18),
+              x=0.07,
+              xanchor='left',
+              y=0.84,
+              yanchor='top',
+          ),
+          height=500,
           font=dict(size=18),
           xaxis=dict(
-              tickvals=final_tick_positions,  # Positions where we want to show the x-ticks (only for Q1)
-              ticktext=final_tick_labels,  # Show only the year at the selected tick positions
-              tickangle=0,  # Keep x-axis tick labels horizontal
-              showline=True,  # Show x-axis line
+              tickvals=final_tick_positions,
+              ticktext=final_tick_labels,
+              tickangle=0,
+              showline=True,
               linewidth=1,
               linecolor='black',
               mirror=True,
               tickfont=dict(size=14),
+              tickcolor="#646464",
               ticks='outside',
               ticklen=5,
           ),
@@ -5449,70 +5237,71 @@ with tab8:
           ),
           plot_bgcolor='white',
           yaxis_gridcolor='lightgray',
-          annotations=[last_datapoint_annotation, data_source_annotation],
           legend=dict(
               x=1.05,
               y=1,
               traceorder='normal',
               font=dict(family="Monaco, monospace", size=12, color="black")
-          )
+          ),
+          margin=dict(t=120, b=70, r=80, l=60),
+          annotations=[
+              dict(
+                  xref='paper', yref='paper',
+                  x=0.0, y=-0.15,
+                  xanchor='left', yanchor='top',
+                  text=f'Källa: <a href="{source_url}">Eurostat</a>',
+                  font=dict(size=12, color='black'),
+                  showarrow=False,
+              ),
+          ],
       )
 
-      layout_bki_tot['title']['y'] = 0.89
+      config = {
+          'toImageButtonOptions': {
+              'format': 'png',
+              'filename': 'high_quality_plot',
+              'scale': 2,
+          },
+          'displaylogo': False
+      }
 
-      # Plot the figure with the custom data and layout
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=600)
-      st.plotly_chart(fig)
+      fig = go.Figure(data=data_bki_tot, layout=layout)
+      fig.update_layout(width=600)
+      st.plotly_chart(fig, config=config)
 
-      layout_bki_tot['title']['x'] = 0.1
-      fig = go.Figure(data=data_bki_tot, layout=layout_bki_tot, layout_width=600)
-
-      @st.cache_data
-      def save_figure_as_image(fig, format='png'):
-          # Save the figure to a BytesIO object
-          img_bytes = BytesIO()
-          fig.write_image(img_bytes, format=format, scale=2)  # Increase scale for higher resolution
-          img_bytes.seek(0)
-          return img_bytes
+      # --- Nedladdningsknappar ---
+      def save_as_html(fig):
+          buf = StringIO()
+          fig.write_html(buf, include_plotlyjs='cdn', config=config)
+          return buf.getvalue().encode('utf-8')
 
       def display_download_button(fig):
-          global download_counter  # Use the global counter variable
-
-          # Save the figure as a high-resolution image (PNG format by default)
-          image_data = save_figure_as_image(fig, format='png')
-
-          # Add a download button for the figure image with a unique key
+          global download_counter
           col1.download_button(
               label="📈 Hämta figur",
-              data=image_data,
-              file_name="figure.png",
-              mime="image/png",
-              key=f"download_button_{download_counter}"  # Unique key based on the counter
+              data=save_as_html(fig),
+              file_name="figure.html",
+              mime="text/html",
+              key=f"download_button_{download_counter}"
           )
-
-          download_counter += 1  # Increment the counter for the next call
+          download_counter += 1
 
       def display_download_button_excel(df):
-          global download_counter_excel  # Use the global counter variable
-
-          # Create an Excel file from the DataFrame
-          df_xlsx = to_excel(df)
-
-          # Add a download button for the Excel file with a unique key
+          global download_counter_excel
           col2.download_button(
               label='📥 Hämta data',
-              data=df_xlsx,
+              data=to_excel(df),
               file_name='data.xlsx',
               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"  # Unique key based on the counter
+              key=f"download_button_excel_{download_counter_excel}"
           )
-
-          download_counter_excel += 1  # Increment the counter for the next call
+          download_counter_excel += 1
 
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
       display_download_button(fig)
       display_download_button_excel(df)
+
   # Example usage
   #fig = plot_eurostat_data(
   #    data_code='ilc_lvho07a',
@@ -5805,753 +5594,295 @@ with tab8:
   #                              file_name= 'df_test.xlsx',
   #                              key="52")
 
+
+  # ── ilc_lvho07d – Hushåll med boendeutgifter > 40%, i städer ───────────────
   my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1'}
   data = eurostat.get_data_df('ilc_lvho07d', filter_pars=my_filter_pars)
 
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
+  colors = ['rgb(250,80,80)', '#FDB813', 'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.12,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='I städer, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Hushåll med boendeutgifter över 40% av disponibel inkomst',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.43,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Hushåll med boendeutgifter över 40% av disponibel inkomst'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I städer, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO07D__custom_7140801/bookmark/table?lang=en&bookmarkId=411e17fd-9b03-4729-8ad9-ea4844481e08">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO07D__custom_7140801/bookmark/table?lang=en&bookmarkId=411e17fd-9b03-4729-8ad9-ea4844481e08">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
   st.plotly_chart(fig)
-
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="47")
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="47")
 
+
+  # ── ilc_lvho07a – Hushåll med boendeutgifter > 40%, hela befolkningen ───────
   my_filter_pars = {'age': 'TOTAL', 'sex': 'T', 'incgrp': 'TOTAL'}
   data = eurostat.get_data_df('ilc_lvho07a', filter_pars=my_filter_pars)
 
-  #plot_eurostat_data('ilc_mdes06', ['NO', 'DK', 'FI', 'SE', 'EU27_2020'], (2010, 2024), 'Housing cost overburden rate',
-         #               'Housing cost overburden rate', 'Hela befolkningen, 2010-2023', 'År', 'Procent', 'https://ec.europa.eu/eurostat/databrowser/view/ILC_MDES06/default/table', additional_filter_pars={'age': 'TOTAL', 'sex': 'T'})
-
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.16,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Hushåll med boendeutgifter över 40% av disponibel inkomst',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.40,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Hushåll med boendeutgifter över 40% av disponibel inkomst'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO07A__custom_12778359/default/table?lang=en">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO07A__custom_12778359/default/table?lang=en">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
-  fig.show()
   st.plotly_chart(fig)
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="46")
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="46")
 
+
+  # ── ilc_mded01 – Boendekostnad andel, riskzon för fattigdom ─────────────────
   my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.30,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Boendekostnadens andel av hushållens disponibla inkomst',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.38,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Boendekostnadens andel av hushållens disponibla inkomst'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_MDED01__custom_7140904/bookmark/table?lang=en&bookmarkId=659e8061-cde5-4ddb-b633-7cff3c16b7bd">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_MDED01__custom_7140904/bookmark/table?lang=en&bookmarkId=659e8061-cde5-4ddb-b633-7cff3c16b7bd">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
- #fig.show()
   st.plotly_chart(fig)
-
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="45")
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="45")
 
+
+  # ── ilc_mded01 – Boendekostnad andel, hela befolkningen ─────────────────────
   my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'TOTAL'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.18,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Boendekostnadens andel av hushållens disponibla inkomst',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.38,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Boendekostnadens andel av hushållens disponibla inkomst'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_MDED01__custom_7140904/bookmark/table?lang=en&bookmarkId=659e8061-cde5-4ddb-b633-7cff3c16b7bd">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_MDED01__custom_7140904/bookmark/table?lang=en&bookmarkId=659e8061-cde5-4ddb-b633-7cff3c16b7bd">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
-  #fig.show()
   st.plotly_chart(fig)
-
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="40")
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="40")
 
+
+  # ── ilc_lvho05a – Trångboddhet, hela befolkningen ────────────────────────────
   my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'TOTAL', 'sex': 'T'}
   data = eurostat.get_data_df('ilc_lvho05a', filter_pars=my_filter_pars)
 
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.18,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='Hela befolkningen, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Andel av befolkningen i trångbodda hushåll',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.35,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Andel av befolkningen i trångbodda hushåll'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO05A__custom_7141011/bookmark/table?lang=en&bookmarkId=ac6efb37-3f2f-4b65-9cd6-88e05c335bc1">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO05A__custom_7141011/bookmark/table?lang=en&bookmarkId=ac6efb37-3f2f-4b65-9cd6-88e05c335bc1">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
-  fig.show()
   st.plotly_chart(fig)
-
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="41")
-  #The overcrowding rate is defined as the percentage of the population living in an overcrowded household.
-  #A person is considered as living in an overcrowded household if the household does not have at its disposal a minimum number of rooms equal to:
-  #one room for the household;
-  #one room per couple in the household;
-  #one room for each single person aged 18 or more;
-  #one room per pair of single people of the same gender between 12 and 17 years of age;
-  #one room for each single person between 12 and 17 years of age and not included in the previous category;
-  #one room per pair of children under 12 years of age.
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="41")
 
+
+  # ── ilc_lvho05a – Trångboddhet, riskzon för fattigdom ───────────────────────
   my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'B_MD60', 'sex': 'T'}
   data = eurostat.get_data_df('ilc_lvho05a', filter_pars=my_filter_pars)
 
-  import pandas as pd
-  import plotly.graph_objects as go
-
-  # Step 2: Prepare the Data
-  # Rename 'geo\\TIME_PERIOD' for easier manipulation
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
-
-  # Step 3: Filter the Data to Keep Only Specific Countries
-  # List of countries to keep
-  countries_to_keep = ['NO', 'DK', 'FI', 'SE', 'EU27_2020']
-  data = data[data['geo'].isin(countries_to_keep)]
-
-  # Step 4: Melt the Data to Long Format
-  # Melt the data to have a 'year' column and a 'value' column
-  data_long = pd.melt(
-      data,
-      id_vars=['geo'],  # Keep the 'geo' column fixed
-      value_vars=[str(year) for year in range(2010, 2025)],  # Columns representing years
-      var_name='year',  # Name for the melted 'year' column
-      value_name='value'  # Name for the melted 'value' column
-  )
-
-  # Convert 'year' to datetime format for correct plotting on the x-axis
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2025)],
+      var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
-  # Step 5: Plot with Plotly
   fig = go.Figure()
-
-  # Define colors for each country
-  colors = ['rgb(250,80,80)', '#FDB813',  'rgb(20,200,220)', 'rgb(200,75,10)', '#0051BA']
-
-  # Add a line for each country with a specific color
   for idx, country in enumerate(data_long['geo'].unique()):
-      country_data = data_long[data_long['geo'] == country]
-      country_label = 'EU' if country == 'EU27_2020' else country
+      cd = data_long[data_long['geo'] == country]
       fig.add_trace(go.Scatter(
-          x=country_data['year'],
-          y=country_data['value'],
-          mode='lines+markers',
-          name=country_label,
-          line=dict(color=colors[idx])  # Assign specific color
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
       ))
 
-  # Create sub-heading as an annotation
-  sub_heading_annotation = dict(
-      xref='paper',
-      yref='paper',
-      x=0.35,  # Adjust x position as needed
-      y=1.03,  # Position just above the plot area, below the main title
-      xanchor='center',
-      yanchor='bottom',
-      text='Personer som kan anses vara i riskzonen för fattigdom, 2010-2024',  # Your sub-heading text
-      font=dict(size=14, color='black'),  # Set font size and color
-      showarrow=False
-  )
-
-  # Customize Layout with a Frame and Improved Title Position
   fig.update_layout(
-      title={
-          'text': 'Andel av befolkningen i trångbodda hushåll',
-          'y': 0.90,  # Adjust to control the exact vertical position of the title
-          'x': 0.35,
-          'xanchor': 'center',
-          'yanchor': 'top',
-          'font': {'size': 18}  # Adjust font size as needed
-      },
-      xaxis=dict(
-          title='År',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickangle=0,
-          tickfont=dict(size=14)
+      title=dict(
+          text='Andel av befolkningen i trångbodda hushåll'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2024</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
-      yaxis=dict(
-          title='Procent',
-          showline=True,
-          linewidth=1,
-          linecolor='black',
-          mirror=True,  # Create a frame effect
-          tickfont=dict(size=16)
-      ),
-      plot_bgcolor='white',
-      margin=dict(
-          l=40, r=40, t=100, b=100  # Adjust margins to fit the titles and annotations
-      ),
-      width=700,
-      template='plotly_white',
-      annotations=[
-          sub_heading_annotation,  # Add sub-heading annotation
-          dict(
-              text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ilc_lvho05a/default/table?lang=en">Eurostat</a>',
-              xref='paper', yref='paper',
-              x=1, y=-0.20,
-              showarrow=False,
-              font=dict(size=12)
-          )
-      ],
-      legend=dict(
-          x=1.05,
-          y=1,
-          traceorder='normal',
-          title='Land',
-          font=dict(family="Monaco, monospace", size=12, color="black")
-      )
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ilc_lvho05a/default/table?lang=en">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
   )
-
-  # Display the plot
-  #fig.show()
   st.plotly_chart(fig)
-
   st.header("Hämta", divider=True)
   col1, col2, col3 = st.columns(3)
-  df_xlsx = to_excel(data)
-  col1.download_button(label='📥 Hämta data',
-                                data=df_xlsx,
-                                file_name= 'df_test.xlsx',
-                                key="42")
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="42")
+
 with tab9:
   # Data till diagram 3.3
   import requests
