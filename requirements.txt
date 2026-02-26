@@ -9,3 +9,4 @@ pyxlsb
 xlsxwriter
 groq
 eurostat
+icalendar
