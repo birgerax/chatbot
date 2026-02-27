@@ -4,7 +4,57 @@ from io import BytesIO
 from pyxlsb import open_workbook as open_xlsb
 from groq import Groq
 
+def init_counters():
+    """Anropa en gång högst upp i main.py."""
+    if "dl_fig" not in st.session_state:
+        st.session_state.dl_fig = 0
+    if "dl_excel" not in st.session_state:
+        st.session_state.dl_excel = 0
+
+def next_fig_key() -> str:
+    key = f"dl_fig_{st.session_state.dl_fig}"
+    st.session_state.dl_fig += 1
+    return key
+
+def next_excel_key() -> str:
+    key = f"dl_excel_{st.session_state.dl_excel}"
+    st.session_state.dl_excel += 1
+    return key
+
+
+# ─────────────────────────────────────────────
+# Så här används de i create_bki_plot i stället
+# för de gamla globala räknarna:
+# ─────────────────────────────────────────────
+
+def display_download_buttons(fig, df, to_excel_fn):
+    st.header("Hämta", divider=True)
+    col1, col2, col3 = st.columns(3)
+
+    # Figur-knapp
+    from io import StringIO
+    config = {"displaylogo": False, "toImageButtonOptions": {"format": "png", "scale": 2}}
+    buf = StringIO()
+    fig.write_html(buf, include_plotlyjs="cdn", config=config)
+    col1.download_button(
+        label="📈 Hämta figur",
+        data=buf.getvalue().encode("utf-8"),
+        file_name="figure.html",
+        mime="text/html",
+        key=next_fig_key(),      # ← session_state-nyckel
+    )
+
+    # Excel-knapp
+    col2.download_button(
+        label="📥 Hämta data",
+        data=to_excel_fn(df),
+        file_name="data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key=next_excel_key(),    # ← session_state-nyckel
+    )
+
 st.title("Statistik 📊")
+init_counters()
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Datum", "Bostadsbestånd", "Hushållens boende", "BKI", "KI", "Investeringar", "Ny- och ombyggnad", "Eurostat", "BP"])
 
 with tab1:
@@ -175,15 +225,12 @@ with tab1:
   st.subheader("Statistikuppdateringar sorterat efter datum 📆")
   components.html(html, height=55 + len(sorterade_datum) * 45)
 
+
 with tab2:
   import plotly.graph_objs as go
   import plotly.offline as pyo
   import pandas as pd
   import math
-
-  # Counter to ensure unique keys for each download button
-  download_counter = 0
-  download_counter_excel = 0
 
   import sqlite3
   from datetime import datetime
@@ -384,7 +431,7 @@ with tab2:
               ),
           ],
       )
-
+      
       config = {
           'toImageButtonOptions': {
               'format': 'png',
@@ -408,34 +455,23 @@ with tab2:
           fig.write_html(buf, include_plotlyjs='cdn', config=config)
           return buf.getvalue().encode('utf-8')
 
-      def display_download_button(fig):
-          global download_counter
-          col1.download_button(
-              label="📈 Hämta figur",
-              data=save_as_html(fig),
-              file_name="figure.html",
-              mime="text/html",
-              key=f"download_button_{download_counter}"
-          )
-          download_counter += 1
-
-      def display_download_button_excel(df):
-          global download_counter_excel
-          col2.download_button(
-              label='📥 Hämta data',
-              data=to_excel(df.iloc[:, 1:]),
-              file_name='data.xlsx',
-              mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"
-          )
-          download_counter_excel += 1
-
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
-      display_download_button(fig)
-      display_download_button_excel(old_df)
+      col1.download_button(
+          label="📈 Hämta figur",
+          data=save_as_html(fig),
+          file_name="figure.html",
+          mime="text/html",
+          key=next_fig_key(),
+      )
+      col2.download_button(
+          label="📥 Hämta data",
+          data=to_excel(df),
+          file_name="data.xlsx",
+          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          key=next_excel_key(),
+      )
       return df
-
 
   import requests
   import json
@@ -873,9 +909,8 @@ with tab2:
       data=df_xlsx,
       file_name='data_filtered.xlsx',
       mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      key=f"download_button_excel_{download_counter_excel}"  # Unique key based on the counter
+      key=next_excel_key()
   )
-  download_counter_excel += 1
 
   # Calculate total values per year for normalization
   totals_per_year = {year: 0 for year in keys}
@@ -1561,32 +1596,24 @@ with tab4:
           fig.write_html(buf, include_plotlyjs='cdn', config=config)
           return buf.getvalue().encode('utf-8')
 
-      def display_download_button(fig):
-          global download_counter
-          col1.download_button(
-              label="📈 Hämta figur",
-              data=save_as_html(fig),
-              file_name="figure.html",
-              mime="text/html",
-              key=f"download_button_{download_counter}"
-          )
-          download_counter += 1
-
-      def display_download_button_excel(df):
-          global download_counter_excel
-          col2.download_button(
-              label='📥 Hämta data',
-              data=to_excel(df.iloc[:, :]),
-              file_name='data.xlsx',
-              mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"
-          )
-          download_counter_excel += 1
-
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
-      display_download_button(fig)
-      display_download_button_excel(df)
+      col1.download_button(
+          label="📈 Hämta figur",
+          data=save_as_html(fig),
+          file_name="figure.html",
+          mime="text/html",
+          key=next_fig_key(),
+      )
+      col2.download_button(
+          label="📥 Hämta data",
+          data=to_excel(df),
+          file_name="data.xlsx",
+          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          key=next_excel_key(),
+      )
+      return df
+
 
 
   keys_kv = [entry['key'][2] for entry in response_json['data']]
@@ -5312,32 +5339,23 @@ with tab8:
           fig.write_html(buf, include_plotlyjs='cdn', config=config)
           return buf.getvalue().encode('utf-8')
 
-      def display_download_button(fig):
-          global download_counter
-          col1.download_button(
-              label="📈 Hämta figur",
-              data=save_as_html(fig),
-              file_name="figure.html",
-              mime="text/html",
-              key=f"download_button_{download_counter}"
-          )
-          download_counter += 1
-
-      def display_download_button_excel(df):
-          global download_counter_excel
-          col2.download_button(
-              label='📥 Hämta data',
-              data=to_excel(df),
-              file_name='data.xlsx',
-              mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f"download_button_excel_{download_counter_excel}"
-          )
-          download_counter_excel += 1
-
       st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
-      display_download_button(fig)
-      display_download_button_excel(df)
+      col1.download_button(
+          label="📈 Hämta figur",
+          data=save_as_html(fig),
+          file_name="figure.html",
+          mime="text/html",
+          key=next_fig_key(),
+      )
+      col2.download_button(
+          label="📥 Hämta data",
+          data=to_excel(df),
+          file_name="data.xlsx",
+          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          key=next_excel_key(),
+      )
+      return df
 
   # Example usage
   #fig = plot_eurostat_data(
@@ -5920,7 +5938,9 @@ with tab8:
   col1, col2, col3 = st.columns(3)
   col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="42")
 
-# ── Filter & hämta data ────────────────────────────────────────────────────────
+
+
+  # ── Filter & hämta data ────────────────────────────────────────────────────────
   gdp_filter_pars = {
       'freq':    'A',
       'unit':    'PC_GDP',
@@ -6056,32 +6076,23 @@ with tab8:
           fig.write_html(buf, include_plotlyjs='cdn', config=config)
           return buf.getvalue().encode('utf-8')
 
-      def display_download_button(fig):
-          global download_counter
-          col1.download_button(
-              label='📈 Hämta figur',
-              data=save_as_html(fig),
-              file_name='figure_bnp.html',
-              mime='text/html',
-              key=f'download_button_{download_counter}',
-          )
-          download_counter += 1
-
-      def display_download_button_excel(df):
-          global download_counter_excel
-          col2.download_button(
-              label='📥 Hämta data',
-              data=to_excel(df),
-              file_name='data_bnp.xlsx',
-              mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              key=f'download_button_excel_{download_counter_excel}',
-          )
-          download_counter_excel += 1
-
-      st.header('Hämta', divider=True)
+      st.header("Hämta", divider=True)
       col1, col2, col3 = st.columns(3)
-      display_download_button(fig)
-      display_download_button_excel(df)
+      col1.download_button(
+          label="📈 Hämta figur",
+          data=save_as_html(fig),
+          file_name="figure.html",
+          mime="text/html",
+          key=next_fig_key(),
+      )
+      col2.download_button(
+          label="📥 Hämta data",
+          data=to_excel(df),
+          file_name="data.xlsx",
+          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          key=next_excel_key(),
+      )
+      return df
 
 
   create_bki_plot_eurostat_annual(
