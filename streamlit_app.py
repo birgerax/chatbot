@@ -5920,6 +5920,210 @@ with tab8:
   col1, col2, col3 = st.columns(3)
   col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="42")
 
+# ── Filter & hämta data ────────────────────────────────────────────────────────
+  gdp_filter_pars = {
+      'freq':    'A',
+      'unit':    'PC_GDP',
+      'asset10': 'N111G',        # Dwellings gross (bostäder, brutto)
+  }
+  data_gdp = eurostat.get_data_df('nama_10_an6', filter_pars=gdp_filter_pars)
+
+  # ── Länder att visa ────────────────────────────────────────────────────────────
+  country_map = {
+      'SE':       'SE',
+      'EU27_2020':'EU',
+      'DK':       'DK',
+      'NO':       'NO',
+      'FI':       'FI',
+  }
+
+  time_col = 'geo\\TIME_PERIOD'   # kolumnnamn i Eurostat-df
+
+  # Hämta tidsaxel (kolumner efter den första icke-tidskolumnen)
+  first_country = list(country_map.keys())[0]
+  ref_row   = data_gdp.loc[data_gdp[time_col] == first_country]
+  year_cols = ref_row.columns[ref_row.columns.get_loc(time_col) + 1:]
+
+  # Välj ett startår (matcha ungefär med sts-serien ovan)
+  start_year = '2008'
+  year_cols_trimmed = [c for c in year_cols if str(c) >= start_year]
+
+  # ── Bygg values_dict ──────────────────────────────────────────────────────────
+  values_dict_gdp = {}
+  for eurostat_code, label in country_map.items():
+      row = data_gdp.loc[data_gdp[time_col] == eurostat_code]
+      if row.empty:
+          continue
+      vals = row.iloc[0][year_cols_trimmed].values.tolist()
+      values_dict_gdp[label] = vals
+
+  x_labels_gdp = list(year_cols_trimmed)   # ['2008', '2009', …]
+
+  # ── Plotta ────────────────────────────────────────────────────────────────────
+  colors_gdp  = ['#0051BA', '#FDB813', 'rgb(250,80,80)', 'rgb(200,75,10)', 'rgb(20,200,220)']
+  title_gdp   = "Andel bostadsinvesteringar av BNP"
+  source_gdp  = "https://ec.europa.eu/eurostat/databrowser/view/nama_10_an6__custom_12695327/bookmark/table?lang=en&bookmarkId=58012838-134a-4845-8e0b-0444203bc9a0"
+
+  # Anpassad plotfunktion för årsdata (ingen Q-logik behövs)
+  def create_bki_plot_eurostat_annual(values_dict, keys_kv, colors, title, source_url, sub_heading):
+      min_length     = min(len(v) for v in values_dict.values())
+      keys_kv_trimmed = keys_kv[:min_length]
+
+      df = pd.DataFrame({'Time': keys_kv_trimmed})
+      for label, values in values_dict.items():
+          df[label] = values[:min_length]
+
+      # Traces
+      data_traces = []
+      for i, (label, _) in enumerate(values_dict.items()):
+          trace = go.Scatter(
+              x=df['Time'],
+              y=df[label],
+              name=label,
+              hovertext=[
+                  f"År: {t}<br>{label}: {v:.2f} %"
+                  for t, v in zip(df['Time'], df[label])
+              ],
+              hoverinfo='text',
+              mode='lines',
+              line=dict(color=colors[i], width=2.6,
+                        dash='dash' if label == 'Total' else None),
+              opacity=1,
+          )
+          data_traces.append(trace)
+
+      combined_title = (
+          f'{title}<br>'
+          f'<span style="font-size:14px; color:#444; font-weight:normal;">'
+          f'{sub_heading}</span>'
+      )
+
+      layout = go.Layout(
+          title=dict(
+              text=combined_title,
+              font=dict(size=18),
+              x=0.07, xanchor='left',
+              y=0.84, yanchor='top',
+          ),
+          height=500,
+          font=dict(size=18),
+          xaxis=dict(
+              tickvals=df['Time'].tolist()[::2],   # vartannat år
+              ticktext=df['Time'].tolist()[::2],
+              tickangle=0,
+              showline=True, linewidth=1, linecolor='black', mirror=True,
+              tickfont=dict(size=14),
+              tickcolor='#646464',
+              ticks='outside', ticklen=5,
+          ),
+          yaxis=dict(
+              showline=True, linewidth=1, linecolor='black', mirror=True,
+              tickfont=dict(size=16),
+              ticksuffix=' %',
+          ),
+          plot_bgcolor='white',
+          yaxis_gridcolor='lightgray',
+          legend=dict(
+              x=1.05, y=1,
+              traceorder='normal',
+              font=dict(family='Monaco, monospace', size=12, color='black'),
+          ),
+          margin=dict(t=120, b=70, r=80, l=70),
+          annotations=[
+              dict(
+                  xref='paper', yref='paper',
+                  x=0.0, y=-0.15,
+                  xanchor='left', yanchor='top',
+                  text=f'Källa: <a href="{source_url}">Eurostat</a>',
+                  font=dict(size=12, color='black'),
+                  showarrow=False,
+              ),
+          ],
+      )
+
+      config = {
+          'toImageButtonOptions': {'format': 'png', 'filename': 'bostadsinv_bnp', 'scale': 2},
+          'displaylogo': False,
+      }
+
+      fig = go.Figure(data=data_traces, layout=layout)
+      fig.update_layout(width=600)
+      st.plotly_chart(fig, config=config)
+
+      # --- Nedladdningsknappar ---
+      def save_as_html(fig):
+          buf = StringIO()
+          fig.write_html(buf, include_plotlyjs='cdn', config=config)
+          return buf.getvalue().encode('utf-8')
+
+      def display_download_button(fig):
+          global download_counter
+          col1.download_button(
+              label='📈 Hämta figur',
+              data=save_as_html(fig),
+              file_name='figure_bnp.html',
+              mime='text/html',
+              key=f'download_button_{download_counter}',
+          )
+          download_counter += 1
+
+      def display_download_button_excel(df):
+          global download_counter_excel
+          col2.download_button(
+              label='📥 Hämta data',
+              data=to_excel(df),
+              file_name='data_bnp.xlsx',
+              mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              key=f'download_button_excel_{download_counter_excel}',
+          )
+          download_counter_excel += 1
+
+      st.header('Hämta', divider=True)
+      col1, col2, col3 = st.columns(3)
+      display_download_button(fig)
+      display_download_button_excel(df)
+
+
+  create_bki_plot_eurostat_annual(
+      values_dict_gdp,
+      x_labels_gdp,
+      colors_gdp,
+      title_gdp,
+      source_gdp,
+      'Bruttoinvesteringar',
+  )
+
+  # ── Andel bygginvesteringar av BNP (N11KG) ────────────────────────────────────
+  bygg_filter_pars = {
+      'freq':    'A',
+      'unit':    'PC_GDP',
+      'asset10': 'N11KG',        # Total construction (bygginvesteringar, brutto)
+  }
+  data_bygg = eurostat.get_data_df('nama_10_an6', filter_pars=bygg_filter_pars)
+
+  ref_row_bygg   = data_bygg.loc[data_bygg[time_col] == first_country]
+  year_cols_bygg = ref_row_bygg.columns[ref_row_bygg.columns.get_loc(time_col) + 1:]
+  year_cols_bygg_trimmed = [c for c in year_cols_bygg if str(c) >= start_year]
+
+  values_dict_bygg = {}
+  for eurostat_code, label in country_map.items():
+      row = data_bygg.loc[data_bygg[time_col] == eurostat_code]
+      if row.empty:
+          continue
+      vals = row.iloc[0][year_cols_bygg_trimmed].values.tolist()
+      values_dict_bygg[label] = vals
+
+  x_labels_bygg = list(year_cols_bygg_trimmed)
+
+  create_bki_plot_eurostat_annual(
+      values_dict_bygg,
+      x_labels_bygg,
+      colors_gdp,
+      'Andel bygginvesteringar av BNP',
+      source_gdp,
+      'Bruttoinvesteringar',
+  )
+
 with tab9:
   # Data till diagram 3.3
   import requests
