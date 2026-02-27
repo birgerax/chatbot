@@ -113,30 +113,67 @@ with tab1:
   from datetime import datetime
   from prettytable import PrettyTable
 
-  def display_data():
-    alla_datum = [(datetime.strptime(datum_bygg, "%Y-%m-%d"), "Bygglov, nybyggnad och ombyggnad", next_publication),
-                  (datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
-                  (datetime.strptime(datum_b, "%Y-%m-%d"), "Byggkostnadsindex", datum_bki),
-                  (datetime.strptime(datum_ko, "%Y-%m-%d"), "Konkurser", datum_k),
-                  (datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
-                  #(datetime.strptime(datum_t, "%Y-%m-%d"), "Prisindex i producent- och importled (bl.a. tjänsteprisindex)", datum_tj)
+from datetime import datetime
+from io import BytesIO
+import base64
 
-    #alla_datum = [(datetime.strptime(datum_fin, "%Y-%m-%d"), "Finansmarknadsstatistik", datum_finans),
-                  #(datetime.strptime(datum_n, "%Y-%m-%d"), "Nationalräkenskaper (bl.a. bostadsinvesteringar)", datum_nr)]
+def skapa_ics_b64(kategori, datum_str):
+    """Skapar en base64-kodad .ics-sträng för ett möte kl. 08:00–09:00."""
+    dtstart = datum_str.replace("-", "") + "T080000"
+    dtend   = datum_str.replace("-", "") + "T090000"
+    ics = (
+        "BEGIN:VCALENDAR\n"
+        "VERSION:2.0\n"
+        "PRODID:-//SCB Stats//SV\n"
+        "BEGIN:VEVENT\n"
+        f"SUMMARY:{kategori}\n"
+        f"DTSTART:{dtstart}\n"
+        f"DTEND:{dtend}\n"
+        f"DESCRIPTION:SCB publicerar ny statistik: {kategori}\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n"
+    )
+    return base64.b64encode(ics.encode("utf-8")).decode("utf-8")
 
-    sorterade_datum = sorted(alla_datum, key=lambda x: x[0])
+# --- HTML-tabell med klickbara datum ---
+rader = ""
+for datum_obj, kategori, _ in sorterade_datum:
+    datum_str = datum_obj.strftime("%Y-%m-%d")
+    b64 = skapa_ics_b64(kategori, datum_str)
+    rader += f"""
+    <tr>
+        <td>{kategori}</td>
+        <td><a href="data:text/calendar;base64,{b64}" download="{kategori}.ics">{datum_str}</a></td>
+    </tr>
+    """
 
-    table = PrettyTable()
-    table.field_names = ["Kategori", "Nästa publicering"]
-    table.align["Kategori"] = "1"
-    table.align["Nästa publicering"] = "1"
+html = f"""
+<style>
+    .scb-table {{ border-collapse: collapse; width: 100%; font-size: 15px; }}
+    .scb-table th {{ background-color: #f0f2f6; text-align: left; padding: 10px 14px; border: 1px solid #ddd; }}
+    .scb-table td {{ padding: 9px 14px; border: 1px solid #ddd; }}
+    .scb-table tr:nth-child(even) {{ background-color: #f9f9f9; }}
+    .scb-table tr:hover {{ background-color: #eef2fb; }}
+    .scb-table a {{ color: #0068c9; text-decoration: none; }}
+    .scb-table a:hover {{ text-decoration: underline; }}
+</style>
+<table class="scb-table">
+    <thead>
+        <tr>
+            <th>Kategori</th>
+            <th>Nästa publicering</th>
+        </tr>
+    </thead>
+    <tbody>
+        {rader}
+    </tbody>
+</table>
+"""
 
-    table.title = "Statistikuppdateringar sorterat efter datum 📆"
+import streamlit.components.v1 as components
 
-    for _, category, variable in sorterade_datum:
-      table.add_row([category, _.strftime("%Y-%m-%d")])
-    st.write(table)
-  display_data()
+st.subheader("Statistikuppdateringar sorterat efter datum 📆")
+components.html(html, height=55 + len(sorterade_datum) * 45)
 
 with tab2:
   import plotly.graph_objs as go
