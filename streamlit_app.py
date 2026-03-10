@@ -5657,7 +5657,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5675,7 +5675,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Hushåll med boendeutgifter över 40% av disponibel inkomst'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I städer, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I städer, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
@@ -5706,7 +5706,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5723,7 +5723,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Hushåll med boendeutgifter över 40% av disponibel inkomst'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
@@ -5754,7 +5754,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5771,7 +5771,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Boendekostnadens andel av hushållens disponibla inkomst'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
@@ -5802,7 +5802,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5819,7 +5819,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Boendekostnadens andel av hushållens disponibla inkomst'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
@@ -5850,7 +5850,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5867,7 +5867,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Andel av befolkningen i trångbodda hushåll'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">Hela befolkningen, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
@@ -5898,7 +5898,7 @@ with tab8:
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
   data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
   data_long = pd.melt(data, id_vars=['geo'],
-      value_vars=[str(y) for y in range(2010, 2025)],
+      value_vars=[str(y) for y in range(2010, 2026)],
       var_name='year', value_name='value')
   data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
 
@@ -5915,7 +5915,7 @@ with tab8:
   fig.update_layout(
       title=dict(
           text='Andel av befolkningen i trångbodda hushåll'
-              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2024</span>',
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2025</span>',
           font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
       ),
       font=dict(size=18), height=500, width=600,
