@@ -5752,7 +5752,7 @@ with tab8:
 
 
   # ── ilc_mded01 – Boendekostnad andel, riskzon för fattigdom ─────────────────
-  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60', 'hhcomp': 'B_60'}
+  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60', 'hhcomp': 'B_60', 'rskpovth': 'B_60'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
@@ -5800,7 +5800,7 @@ with tab8:
 
 
   # ── ilc_mded01 – Boendekostnad andel, hela befolkningen ─────────────────────
-  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'TOTAL', 'hhcomp': 'TOTAL'}
+  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'TOTAL', 'hhcomp': 'TOTAL', 'rskpovth': 'TOTAL'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
