@@ -5704,7 +5704,7 @@ with tab8:
 
 
   # ── ilc_lvho07a – Hushåll med boendeutgifter > 40%, hela befolkningen ───────
-  my_filter_pars = {'age': 'TOTAL', 'sex': 'T', 'incgrp': 'TOTAL'}
+  my_filter_pars = {'age': 'TOTAL', 'sex': 'T', 'incgrp': 'TOTAL', 'rskpovth': 'TOTAL'}
   data = eurostat.get_data_df('ilc_lvho07a', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
@@ -5752,7 +5752,7 @@ with tab8:
 
 
   # ── ilc_mded01 – Boendekostnad andel, riskzon för fattigdom ─────────────────
-  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60'}
+  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60', 'rskpovth': 'B_60'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
@@ -5800,7 +5800,7 @@ with tab8:
 
 
   # ── ilc_mded01 – Boendekostnad andel, hela befolkningen ─────────────────────
-  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'TOTAL'}
+  my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'TOTAL', 'rskpovth': 'TOTAL'}
   data = eurostat.get_data_df('ilc_mded01', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
@@ -5848,7 +5848,7 @@ with tab8:
 
 
   # ── ilc_lvho05a – Trångboddhet, hela befolkningen ────────────────────────────
-  my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'TOTAL', 'sex': 'T'}
+  my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'TOTAL', 'sex': 'T', 'rskpovth': 'TOTAL'}
   data = eurostat.get_data_df('ilc_lvho05a', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
@@ -5896,7 +5896,7 @@ with tab8:
 
 
   # ── ilc_lvho05a – Trångboddhet, riskzon för fattigdom ───────────────────────
-  my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'B_MD60', 'sex': 'T'}
+  my_filter_pars = {'startPeriod': '2010', 'age': 'TOTAL', 'incgrp': 'B_MD60', 'sex': 'T', 'rskpovth': 'B_60'}
   data = eurostat.get_data_df('ilc_lvho05a', filter_pars=my_filter_pars)
 
   data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
