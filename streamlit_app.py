@@ -5754,6 +5754,53 @@ with tab8:
   col1, col2, col3 = st.columns(3)
   col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="46")
 
+  # ── ilc_lvho07a – Hushåll med boendeutgifter > 40%, I riskzonen för fattigdom ───────
+  my_filter_pars = {'age': 'TOTAL', 'sex': 'T', 'incgrp': 'TOTAL', 'rskpovth': 'B_60'}
+  data = eurostat.get_data_df('ilc_lvho07a', filter_pars=my_filter_pars)
+
+  data.rename(columns={'geo\\TIME_PERIOD': 'geo'}, inplace=True)
+  data = data[data['geo'].isin(['NO', 'DK', 'FI', 'SE', 'EU27_2020'])]
+  data_long = pd.melt(data, id_vars=['geo'],
+      value_vars=[str(y) for y in range(2010, 2026)],
+      var_name='year', value_name='value')
+  data_long['year'] = pd.to_datetime(data_long['year'], format='%Y')
+
+  fig = go.Figure()
+  for idx, country in enumerate(data_long['geo'].unique()):
+      cd = data_long[data_long['geo'] == country]
+      fig.add_trace(go.Scatter(
+          x=cd['year'], y=cd['value'],
+          mode='lines',
+          name='EU' if country == 'EU27_2020' else country,
+          line=dict(color=colors[idx], width=2.6)
+      ))
+
+  fig.update_layout(
+      title=dict(
+          text='Hushåll med boendeutgifter över 40% av disponibel inkomst'
+              '<br><span style="font-size:14px; color:#444; font-weight:normal;">I riskzonen för fattigdom, 2010–2025</span>',
+          font=dict(size=18), x=0.07, xanchor='left', y=0.84, yanchor='top'
+      ),
+      font=dict(size=18), height=500, width=600,
+      xaxis=dict(showline=True, linewidth=1, linecolor='black', mirror=True,
+                tickangle=0, tickfont=dict(size=14), tickcolor="#646464", ticks='outside', ticklen=5),
+      yaxis=dict(title='Procent', showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(size=16)),
+      plot_bgcolor='white', yaxis_gridcolor='lightgray',
+      margin=dict(t=120, b=70, r=80, l=60),
+      legend=dict(x=1.05, y=1, traceorder='normal',
+                  font=dict(family="Monaco, monospace", size=12, color="black")),
+      annotations=[dict(
+          xref='paper', yref='paper', x=0.0, y=-0.15,
+          xanchor='left', yanchor='top', showarrow=False,
+          text='Källa: <a href="https://ec.europa.eu/eurostat/databrowser/view/ILC_LVHO07A__custom_12778359/default/table?lang=en">Eurostat</a>',
+          font=dict(size=12, color='black')
+      )]
+  )
+  st.plotly_chart(fig)
+  st.header("Hämta", divider=True)
+  col1, col2, col3 = st.columns(3)
+  col1.download_button(label='📥 Hämta data', data=to_excel(data), file_name='df_test.xlsx', key="55")
+
 
   # ── ilc_mded01 – Boendekostnad andel, riskzon för fattigdom ─────────────────
   my_filter_pars = {'startPeriod': '2010', 'deg_urb': 'DEG1', 'hhtyp': 'TOTAL', 'incgrp': 'B_MD60', 'hhcomp': 'TOTAL', 'rskpovth': 'B_60'}
